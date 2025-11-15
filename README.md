@@ -30,6 +30,9 @@ Copy `.env.example` or export the following environment variables before running
 - `npm run test:watch` – Watch mode for faster feedback
 - `npm run dev` – Starts the Express API + WebSocket hub via `tsx`
 - `npm start` – Runs the compiled server (`dist/server/index.js`)
+- `npm run web:dev` – Launches the Next.js preview app under `apps/web`
+- `npm run web:build` – Builds the frontend for production
+- `npm run web:start` – Serves the built frontend locally
 
 ## Project Structure
 
@@ -66,3 +69,17 @@ Each helper function includes defensive error handling and enforces the 15-minut
 - **Realtime:** WebSocket hub exposes `/session/:sessionId`, `/status`, and `/notifications/:userId` backed by Redis pub/sub for cross-instance fan-out.
 - **Payments:** Stripe helpers handle intents, capture, refunds, and webhook signature verification.
 - **Documentation:** `openapi.yaml` captures the REST contract for quick import into tools like Postman or Stoplight.
+
+## Frontend Preview (Next.js)
+
+The `apps/web` folder now hosts an app-router Next.js client that renders the fixed conversation sidebar **and** a fully responsive conversation workspace backed by the Dexie cache:
+
+- Sam Concierge stays pinned at the top with its own avatar treatment.
+- Human conversations are sorted by `lastActivity` and show avatars, previews, relative timestamps, unread badges, and live session status chips.
+- The main pane swaps between the Sam chat UI (with structured action buttons + composer) and the human session view (video placeholder + chat, countdown for scheduled sessions, read-only archives when complete).
+- Sam responses include rich action renderers (profile decks, connection offers, scheduling slots, booking confirmations) and integrate with the backend concierge endpoint for replies.
+- Selecting a conversation highlights it and keeps per-thread scroll positions for smooth transitions.
+- On narrow screens the sidebar collapses to an icon strip for quick navigation.
+- Data flows from IndexedDB via a `liveQuery`, so updates in the Dexie stores instantly refresh both the list and the active conversation view.
+
+Use `npm run web:dev` to boot the preview alongside any backend work. The component gracefully handles empty states until real data lands in the `conversations` store.

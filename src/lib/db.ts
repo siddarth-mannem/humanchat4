@@ -8,12 +8,74 @@ export type SessionType = 'instant' | 'scheduled';
 export type SessionStatus = 'pending' | 'in_progress' | 'complete';
 export type PaymentMode = 'free' | 'paid' | 'charity';
 
-export interface Action {
+export type SamActionType =
+  | 'show_profiles'
+  | 'offer_connection'
+  | 'show_slots'
+  | 'confirm_booking'
+  | 'system_notice'
+  | 'create_session'
+  | 'open_conversation';
+
+export interface ActionBase {
   id: string;
-  label: string;
-  actionType: 'connect' | 'schedule' | 'pay' | 'details' | string;
+  label?: string;
+  type?: SamActionType | string;
+  actionType?: string; // legacy support
   payload?: Record<string, unknown>;
 }
+
+export interface ScheduledRate {
+  durationMinutes: number;
+  price: number;
+}
+
+export interface ProfileSummary {
+  userId: string;
+  name: string;
+  avatarUrl?: string;
+  headline?: string;
+  bio?: string;
+  conversationType?: 'free' | 'paid' | 'charity';
+  confidentialRate?: boolean;
+  instantRatePerMinute?: number;
+  scheduledRates?: ScheduledRate[];
+  availability?: string;
+  isOnline?: boolean;
+  hasActiveSession?: boolean;
+  charityName?: string;
+  donationPreference?: 'on' | 'off';
+}
+
+export interface ConnectionOption {
+  mode: string;
+  ratePerMinute?: number;
+  etaMinutes?: number;
+}
+
+export type Action =
+  | (ActionBase & { type: 'show_profiles'; profiles: ProfileSummary[] })
+  | (ActionBase & {
+      type: 'offer_connection';
+      targetUserId: string;
+      connectionOptions?: ConnectionOption[];
+    })
+  | (ActionBase & {
+      type: 'show_slots';
+      slots: Array<{ id: string; label: string; startTime: number }>;
+    })
+  | (ActionBase & { type: 'confirm_booking'; bookingId: string; summary: string })
+  | (ActionBase & { type: 'system_notice'; notice: string })
+  | (ActionBase & {
+      type: 'create_session';
+      conversation: Conversation;
+      session: Session;
+    })
+  | (ActionBase & {
+      type: 'open_conversation';
+      conversationId: string;
+    })
+  | ActionBase;
 
 export interface Conversation {
   conversationId: string;
