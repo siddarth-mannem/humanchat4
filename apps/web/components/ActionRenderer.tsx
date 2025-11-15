@@ -1,8 +1,9 @@
 'use client';
 
-import type { Conversation, Session, Action } from '../../../src/lib/db';
+import type { Conversation, Session, Action, ProfileSummary, SamShowcaseProfile } from '../../../src/lib/db';
 import styles from './ConversationView.module.css';
 import ProfileCard from './ProfileCard';
+import StatusBadge from './StatusBadge';
 
 interface ActionRendererProps {
   action: Action;
@@ -14,6 +15,46 @@ interface ActionRendererProps {
 }
 
 const formatRate = (rate?: number) => (rate ? `$${rate.toFixed(2)}/min` : '');
+
+const isLegacyProfile = (profile: ProfileSummary | SamShowcaseProfile): profile is ProfileSummary => {
+  return (profile as ProfileSummary).userId !== undefined;
+};
+
+const isLegacySessionPayload = (
+  payload: Extract<Action, { type: 'create_session' }>
+): payload is Extract<Action, { type: 'create_session' }> & { conversation: Conversation; session: Session } => {
+  return 'conversation' in payload && 'session' in payload;
+};
+
+const isSessionProposal = (
+  payload: Extract<Action, { type: 'create_session' }>
+): payload is Extract<Action, { type: 'create_session' }> & {
+  host: string;
+  guest: string;
+  suggested_start: string;
+  duration_minutes: number;
+  notes: string;
+} => {
+  return 'host' in payload && 'guest' in payload;
+};
+
+const ShowcaseProfile = ({ profile }: { profile: SamShowcaseProfile }) => (
+  <div className={styles.profileCard}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+      <div>
+        <strong>{profile.name}</strong>
+        {profile.headline && <p className={styles.profileHeadline}>{profile.headline}</p>}
+      </div>
+      {typeof profile.rate_per_minute === 'number' && profile.rate_per_minute > 0 && (
+        <span className={styles.profileHeadline}>{formatRate(profile.rate_per_minute)}</span>
+      )}
+    </div>
+    {profile.expertise && profile.expertise.length > 0 && (
+      <p className={styles.profileHeadline}>Focus: {profile.expertise.join(' • ')}</p>
+    )}
+    <StatusBadge isOnline={profile.status === 'available'} hasActiveSession={profile.status === 'booked'} />
+  </div>
+);
 
 const OfferConnection = ({
   action,
@@ -53,16 +94,29 @@ export default function ActionRenderer({
   switch (action.type || action.actionType) {
     case 'show_profiles': {
       const profiles = (action as Extract<Action, { type: 'show_profiles' }>).profiles ?? [];
+      const legacyProfiles = profiles.filter(isLegacyProfile) as ProfileSummary[];
+      const showcaseProfiles = profiles.filter((profile) => !isLegacyProfile(profile)) as SamShowcaseProfile[];
+
+      if (legacyProfiles.length > 0) {
+        return (
+          <div className={styles.profileScroller}>
+            {legacyProfiles.map((profile) => (
+              <ProfileCard key={profile.userId} profile={profile} onConnectNow={onConnectNow} onBookTime={onBookTime} />
+            ))}
+          </div>
+        );
+      }
+
       return (
         <div className={styles.profileScroller}>
-          {profiles.map((profile) => (
-            <ProfileCard key={profile.userId} profile={profile} onConnectNow={onConnectNow} onBookTime={onBookTime} />
+          {showcaseProfiles.map((profile, index) => (
+            <ShowcaseProfile key={`${profile.name}-${index}`} profile={profile} />
           ))}
         </div>
       );
     }
     case 'offer_connection':
-      return <OfferConnection action={action as Extract<Action, { type: 'offer_connection' }> } onOpenConversation={onOpenConversation} />;
+      return <OfferConnection action={action as Extract<Action, { type: 'offer_connection' }>} onOpenConversation={onOpenConversation} />;
     case 'show_slots': {
       const slots = (action as Extract<Action, { type: 'show_slots' }>).slots ?? [];
       return (
@@ -90,19 +144,38 @@ export default function ActionRenderer({
     }
     case 'create_session': {
       const payload = action as Extract<Action, { type: 'create_session' }>;
-      return (
-        <div className={styles.confirmationCard}>
-          <strong>Session Ready</strong>
-          <p>{payload.label ?? 'Sam prepped a new session for you.'}</p>
-          <button
-            className={styles.primaryButton}
-            type="button"
-            onClick={() => onCreateSession?.(payload.conversation, payload.session)}
-          >
-            Join Session
-          </button>
-        </div>
-      );
+
+      if (isLegacySessionPayload(payload)) {
+        return (
+          <div className={styles.confirmationCard}>
+            <strong>Session Ready</strong>
+            <p>{payload.label ?? 'Sam prepped a new session for you.'}</p>
+            <button
+              className={styles.primaryButton}
+              type="button"
+              onClick={() => onCreateSession?.(payload.conversation, payload.session)}
+            >
+              Join Session
+            </button>
+          </div>
+        );
+      }
+
+      if (isSessionProposal(payload)) {
+        return (
+          <div className={styles.confirmationCard}>
+            <strong>Session proposed</strong>
+            <p>
+              {payload.host} ↔ {payload.guest}
+            </p>
+            <p>Start: {payload.suggested_start}</p>
+            <p>Duration: {payload.duration_minutes} min</p>
+            <p>{payload.notes}</p>
+          </div>
+        );
+      }
+
+      return null;
     }
     case 'open_conversation': {
       const payload = action as Extract<Action, { type: 'open_conversation' }>;
@@ -114,6 +187,25 @@ export default function ActionRenderer({
         >
           Jump into chat
         </button>
+      );
+    }
+    case 'offer_call': {
+      const offer = action as Extract<Action, { type: 'offer_call' }>;
+      return (
+        <div className={styles.noticeBanner}>
+          <strong>{offer.participant} is ready for a call.</strong>
+          <p>{offer.availability_window}</p>
+          <p>{offer.purpose}</p>
+        </div>
+      );
+    }
+    case 'follow_up_prompt': {
+      const followUp = action as Extract<Action, { type: 'follow_up_prompt' }>;
+      return (
+        <div className={styles.noticeBanner}>
+          <strong>Try asking Sam:</strong>
+          <p>{followUp.prompt}</p>
+        </div>
       );
     }
     default:

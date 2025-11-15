@@ -1,5 +1,7 @@
 import { z } from 'zod';
+
 import { addConversationMessage } from './conversationService.js';
+import { sendToSam } from './samAPI.js';
 import { SamResponse } from '../types/index.js';
 
 const SamPayloadSchema = z.object({
@@ -7,26 +9,41 @@ const SamPayloadSchema = z.object({
   conversationHistory: z.array(
     z.object({
       role: z.enum(['user', 'sam']),
-      content: z.string()
+      content: z.string(),
+      timestamp: z.string().optional()
     })
   ),
-  userContext: z.record(z.string(), z.any()).optional()
+  userContext: z
+    .object({
+      sidebarState: z.record(z.string(), z.any()).optional(),
+      timezone: z.string().optional(),
+      availableProfiles: z
+        .array(
+          z.object({
+            name: z.string(),
+            headline: z.string(),
+            expertise: z.array(z.string()),
+            rate_per_minute: z.number(),
+            status: z.enum(['available', 'away', 'booked'])
+          })
+        )
+        .optional()
+    })
+    .catchall(z.any())
+    .optional()
 });
 
 export type SamPayload = z.infer<typeof SamPayloadSchema>;
 
 export const handleSamChat = async (conversationId: string, userId: string, payload: SamPayload): Promise<SamResponse> => {
-  SamPayloadSchema.parse(payload);
+  const parsed = SamPayloadSchema.parse(payload);
 
-  // Placeholder AI call. Real implementation would call Gemini API here.
-  const response: SamResponse = {
-    text: `Hi ${userId}, I can help you connect with the right expert.`,
-    actions: [
-      { type: 'connect', label: 'Connect Now', payload: { conversationId } },
-      { type: 'schedule', label: 'Schedule Session', payload: { conversationId } }
-    ]
-  };
+  const response = await sendToSam({
+    userMessage: parsed.message,
+    conversationHistory: parsed.conversationHistory,
+    userContext: parsed.userContext
+  });
 
-  await addConversationMessage(conversationId, 'sam', response.text, 'sam_response', response.actions as []);
+  await addConversationMessage(conversationId, 'sam', response.text, 'sam_response', response.actions);
   return response;
 };

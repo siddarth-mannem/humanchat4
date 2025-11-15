@@ -1,9 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { Action, Conversation, Message, Session } from '../../../src/lib/db';
+import type { Action, Conversation, Message, Session, ProfileSummary, SamShowcaseProfile } from '../../../src/lib/db';
 import { addMessage, db } from '../../../src/lib/db';
-import { sendSamMessage } from '../utils/samAPI';
+import { sendSamMessage, type ConversationHistoryPayload } from '../utils/samAPI';
 import styles from './ConversationView.module.css';
 import MessageBubble from './MessageBubble';
 import ActionRenderer from './ActionRenderer';
@@ -19,6 +19,28 @@ interface SamChatViewProps {
 
 const isSamMessage = (message: Message) => message.type === 'sam_response' || message.senderId === 'sam';
 
+const normalizeProfile = (profile: ProfileSummary | SamShowcaseProfile, index: number): SamShowcaseProfile => {
+  if ('rate_per_minute' in profile || 'status' in profile) {
+    const typed = profile as SamShowcaseProfile;
+    return {
+      name: typed.name ?? `Profile ${index + 1}`,
+      headline: typed.headline ?? 'HumanChat expert',
+      expertise: Array.isArray(typed.expertise) ? typed.expertise : [],
+      rate_per_minute: typed.rate_per_minute ?? 0,
+      status: typed.status ?? 'available'
+    };
+  }
+
+  const legacy = profile as ProfileSummary;
+  return {
+    name: legacy.name ?? `Profile ${index + 1}`,
+    headline: legacy.headline ?? 'HumanChat expert',
+    expertise: legacy.scheduledRates?.map((slot) => `${slot.durationMinutes} min`) ?? [],
+    rate_per_minute: legacy.instantRatePerMinute ?? 0,
+    status: legacy.hasActiveSession ? 'booked' : legacy.isOnline ? 'available' : 'away'
+  };
+};
+
 export default function SamChatView({
   conversation,
   messages,
@@ -33,6 +55,24 @@ export default function SamChatView({
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const orderedMessages = useMemo(() => [...messages].sort((a, b) => a.timestamp - b.timestamp), [messages]);
+
+  const knownProfiles = useMemo(() => {
+    const collected = new Map<string, SamShowcaseProfile>();
+
+    orderedMessages.forEach((message) => {
+      (message.actions ?? []).forEach((action) => {
+        if ((action.type || action.actionType) !== 'show_profiles') return;
+        const profiles = (action as Extract<Action, { type: 'show_profiles' }>).profiles ?? [];
+        profiles.forEach((profile, index) => {
+          const normalized = normalizeProfile(profile, index);
+          const key = normalized.name?.toLowerCase() ?? `profile-${index}`;
+          collected.set(key, normalized);
+        });
+      });
+    });
+
+    return Array.from(collected.values());
+  }, [orderedMessages]);
 
   const handleContainerRef = useCallback(
     (node: HTMLDivElement | null) => {
@@ -95,6 +135,26 @@ export default function SamChatView({
     setSendError(null);
     setThinking(true);
 
+    const historyPayload: ConversationHistoryPayload[] = orderedMessages.map((message) => ({
+      role: isSamMessage(message) ? 'sam' : 'user',
+      content: message.content,
+      timestamp: new Date(message.timestamp).toISOString()
+    }));
+
+    const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const availableProfiles: SamShowcaseProfile[] =
+      knownProfiles.length > 0
+        ? knownProfiles
+        : conversation.participants
+            .filter((participant) => participant !== 'sam')
+            .map((name) => ({
+              name,
+              headline: 'HumanChat expert',
+              status: 'available' as const,
+              expertise: [],
+              rate_per_minute: 0
+            }));
+
     await addMessage(conversation.conversationId, {
       senderId: localUserId,
       content: text,
@@ -103,7 +163,19 @@ export default function SamChatView({
     });
 
     try {
-      const response = await sendSamMessage(conversation.conversationId, text);
+      const response = await sendSamMessage({
+        conversationId: conversation.conversationId,
+        message: text,
+        conversationHistory: [...historyPayload, { role: 'user', content: text, timestamp: new Date().toISOString() }],
+        userContext: {
+          sidebarState: {
+            activeConversationId: conversation.conversationId,
+            totalParticipants: conversation.participants.length
+          },
+          timezone: userTimezone,
+          availableProfiles
+        }
+      });
       await persistSamMessage(response.text ?? 'Sam is thinking...', response.actions);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to reach Sam right now.';
@@ -123,9 +195,9 @@ export default function SamChatView({
             <MessageBubble key={message.id ?? `${message.timestamp}-${message.senderId}`} message={message} variant={fromSam ? 'sam' : 'user'}>
               {fromSam && message.actions && message.actions.length > 0 && (
                 <div className={styles.actionStack}>
-                  {message.actions.map((action) => (
+                  {message.actions.map((action, index) => (
                     <ActionRenderer
-                      key={action.id}
+                      key={action.id ?? `${message.timestamp}-${index}`}
                       action={action}
                       onOpenConversation={handleOpenConversation}
                       onCreateSession={handleCreateSessionAction}

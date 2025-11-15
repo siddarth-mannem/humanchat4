@@ -12,3 +12,4 @@ logs/
 coverage/
 .vscode/
 .idea/
+apps/web/.next/

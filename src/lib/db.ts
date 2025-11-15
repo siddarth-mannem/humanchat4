@@ -15,10 +15,12 @@ export type SamActionType =
   | 'confirm_booking'
   | 'system_notice'
   | 'create_session'
-  | 'open_conversation';
+  | 'open_conversation'
+  | 'offer_call'
+  | 'follow_up_prompt';
 
 export interface ActionBase {
-  id: string;
+  id?: string;
   label?: string;
   type?: SamActionType | string;
   actionType?: string; // legacy support
@@ -47,6 +49,14 @@ export interface ProfileSummary {
   donationPreference?: 'on' | 'off';
 }
 
+export interface SamShowcaseProfile {
+  name: string;
+  headline?: string;
+  expertise?: string[];
+  rate_per_minute?: number;
+  status?: 'available' | 'away' | 'booked';
+}
+
 export interface ConnectionOption {
   mode: string;
   ratePerMinute?: number;
@@ -54,7 +64,7 @@ export interface ConnectionOption {
 }
 
 export type Action =
-  | (ActionBase & { type: 'show_profiles'; profiles: ProfileSummary[] })
+  | (ActionBase & { type: 'show_profiles'; profiles: Array<ProfileSummary | SamShowcaseProfile> })
   | (ActionBase & {
       type: 'offer_connection';
       targetUserId: string;
@@ -66,14 +76,35 @@ export type Action =
     })
   | (ActionBase & { type: 'confirm_booking'; bookingId: string; summary: string })
   | (ActionBase & { type: 'system_notice'; notice: string })
-  | (ActionBase & {
-      type: 'create_session';
-      conversation: Conversation;
-      session: Session;
-    })
+  | (ActionBase &
+      (
+        | {
+            type: 'create_session';
+            conversation: Conversation;
+            session: Session;
+          }
+        | {
+            type: 'create_session';
+            host: string;
+            guest: string;
+            suggested_start: string;
+            duration_minutes: number;
+            notes: string;
+          }
+      ))
   | (ActionBase & {
       type: 'open_conversation';
       conversationId: string;
+    })
+  | (ActionBase & {
+      type: 'offer_call';
+      participant: string;
+      availability_window: string;
+      purpose: string;
+    })
+  | (ActionBase & {
+      type: 'follow_up_prompt';
+      prompt: string;
     })
   | ActionBase;
 

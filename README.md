@@ -20,6 +20,8 @@ Copy `.env.example` or export the following environment variables before running
 - `JWT_SECRET`
 - `STRIPE_SECRET_KEY`
 - `STRIPE_WEBHOOK_SECRET`
+- `GEMINI_API_KEY`
+- `GEMINI_MODEL` (optional, defaults to `gemini-1.5-flash`)
 
 > Defaults in `src/server/config/env.ts` allow local tinkering without secrets, but real deployments should override them.
 
@@ -69,6 +71,7 @@ Each helper function includes defensive error handling and enforces the 15-minut
 - **Realtime:** WebSocket hub exposes `/session/:sessionId`, `/status`, and `/notifications/:userId` backed by Redis pub/sub for cross-instance fan-out.
 - **Payments:** Stripe helpers handle intents, capture, refunds, and webhook signature verification.
 - **Documentation:** `openapi.yaml` captures the REST contract for quick import into tools like Postman or Stoplight.
+- **Gemini Concierge:** `sendToSam` streams conversation history + UI context to Google Gemini, enforces JSON-only responses, and validates structured Sam actions before persisting them.
 
 ## Frontend Preview (Next.js)
 

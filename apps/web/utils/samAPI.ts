@@ -1,4 +1,4 @@
-import type { Action } from '../../../src/lib/db';
+import type { Action, SamShowcaseProfile } from '../../../src/lib/db';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
@@ -7,17 +7,43 @@ export interface SamApiResponse {
   actions?: Action[];
 }
 
-export const sendSamMessage = async (
-  conversationId: string,
-  text: string
-): Promise<SamApiResponse> => {
-  const response = await fetch(`${API_BASE_URL}/api/sam/chat`, {
+export interface ConversationHistoryPayload {
+  role: 'user' | 'sam';
+  content: string;
+  timestamp?: string;
+}
+
+export interface SamUserContextPayload {
+  sidebarState?: Record<string, unknown>;
+  timezone?: string;
+  availableProfiles?: SamShowcaseProfile[];
+  [key: string]: unknown;
+}
+
+interface SendSamMessageInput {
+  conversationId: string;
+  message: string;
+  conversationHistory: ConversationHistoryPayload[];
+  userContext?: SamUserContextPayload;
+}
+
+export const sendSamMessage = async ({
+  conversationId,
+  message,
+  conversationHistory,
+  userContext
+}: SendSamMessageInput): Promise<SamApiResponse> => {
+  const response = await fetch(`${API_BASE_URL}/api/sam/chat?conversationId=${encodeURIComponent(conversationId)}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
     credentials: 'include',
-    body: JSON.stringify({ conversationId, text })
+    body: JSON.stringify({
+      message,
+      conversationHistory,
+      userContext
+    })
   });
 
   if (!response.ok) {

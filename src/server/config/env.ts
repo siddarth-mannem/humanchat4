@@ -21,5 +21,7 @@ export const env = {
   smtpPort: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : undefined,
   smtpUser: process.env.SMTP_USER,
   smtpPass: process.env.SMTP_PASS,
-  smtpFrom: process.env.SMTP_FROM ?? 'Sam <sam@humanchat.com>'
+  smtpFrom: process.env.SMTP_FROM ?? 'Sam <sam@humanchat.com>',
+  geminiApiKey: process.env.GEMINI_API_KEY,
+  geminiModel: process.env.GEMINI_MODEL ?? 'gemini-1.5-flash'
 };

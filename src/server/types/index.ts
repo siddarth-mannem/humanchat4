@@ -78,7 +78,43 @@ export interface RequestedPerson {
   last_requested_at: string;
 }
 
+export interface SamProfileSummary {
+  name: string;
+  headline: string;
+  expertise: string[];
+  rate_per_minute: number;
+  status: 'available' | 'away' | 'booked';
+}
+
+export type SamAction =
+  | {
+      type: 'show_profiles';
+      profiles: SamProfileSummary[];
+    }
+  | {
+      type: 'offer_call';
+      participant: string;
+      availability_window: string;
+      purpose: string;
+    }
+  | {
+      type: 'create_session';
+      host: string;
+      guest: string;
+      suggested_start: string;
+      duration_minutes: number;
+      notes: string;
+    }
+  | {
+      type: 'follow_up_prompt';
+      prompt: string;
+    }
+  | {
+      type: 'system_notice';
+      notice: string;
+    };
+
 export interface SamResponse {
   text: string;
-  actions: Array<{ type: string; label: string; payload?: Record<string, string | number> }>;
+  actions: SamAction[];
 }
