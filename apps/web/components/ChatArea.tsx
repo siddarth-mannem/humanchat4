@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Conversation, Message } from '../../../src/lib/db';
 import { addMessage } from '../../../src/lib/db';
 import styles from './ConversationView.module.css';
+import VirtualMessageList from './VirtualMessageList';
+import MessageBubble from './MessageBubble';
 
 interface ChatAreaProps {
   conversation: Conversation;
@@ -49,21 +51,21 @@ export default function ChatArea({ conversation, messages, registerScrollContain
     });
   };
 
+  const handleQuickReply = (message: Message) => {
+    setDraft((prev) => (prev ? `${prev}\n${message.content}` : message.content));
+  };
+
   return (
     <div className={styles.chatArea}>
-      <div className={styles.messageList} ref={registerScrollContainer}>
-        {orderedMessages.map((message) => {
+      <VirtualMessageList messages={orderedMessages} className={styles.messageList} registerScrollContainer={registerScrollContainer}>
+        {(message) => {
           const isMine = currentUserId ? message.senderId === currentUserId : false;
           return (
-            <div key={message.id ?? `${message.timestamp}-${message.senderId}`} className={`${styles.bubbleRow} ${isMine ? styles.userRow : styles.samRow}`}>
-              <div className={styles.bubble}>{message.content}</div>
-            </div>
+            <MessageBubble message={message} variant={isMine ? 'user' : 'sam'} onQuickReply={handleQuickReply} />
           );
-        })}
-        {isTyping && (
-          <div className={styles.typingIndicator}>Typing…</div>
-        )}
-      </div>
+        }}
+      </VirtualMessageList>
+      {isTyping && <div className={styles.typingIndicator}>Typing…</div>}
       <form className={styles.chatInputBar} onSubmit={handleSubmit}>
         <textarea placeholder="Message during session…" value={draft} onChange={handleChange} disabled={!currentUserId} />
         <button type="submit" disabled={!draft.trim() || !currentUserId}>

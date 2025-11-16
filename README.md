@@ -109,3 +109,11 @@ The `apps/web` folder now hosts an app-router Next.js client that renders the fi
 - Data flows from IndexedDB via a `liveQuery`, so updates in the Dexie stores instantly refresh both the list and the active conversation view.
 
 Use `npm run web:dev` to boot the preview alongside any backend work. The component gracefully handles empty states until real data lands in the `conversations` store.
+
+## Mobile + PWA Experience
+
+- **Bottom navigation:** The chat workspace now swaps the desktop sidebar for a four-tab bottom nav (Home, Discover, Sam, Profile) under 768px, including unread indicators and full-screen conversation states with a back affordance.
+- **Gestures & pull-to-refresh:** Swipe left on any conversation to archive it, swipe right on a message to quote-reply instantly, and pull down on the list to trigger a Dexie-backed refresh.
+- **Adaptive video calls:** Video stages automatically lock to portrait on phones, 4:3 landscape on tablets, and 16:9 on desktop, with optional picture-in-picture, native invite sharing, and automatic landscape rotation once connected.
+- **Performance & accessibility:** Message panes use virtual scrolling, avatars lazy-load, uploads are compressed client-side, and global settings respect font scaling, high-contrast mode, and keyboard focus outlines.
+- **PWA essentials:** A manifest, offline-first service worker, install prompt, background sync hooks, and push notifications (call reminders, new messages, payment receipts) round out the installable experience.

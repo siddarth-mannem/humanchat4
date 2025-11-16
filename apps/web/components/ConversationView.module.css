@@ -7,6 +7,11 @@
   color: #e2e8f0;
 }
 
+.mobileContainer {
+  min-height: calc(100vh - 64px);
+  padding-bottom: 80px;
+}
+
 .placeholder {
   margin: auto;
   text-align: center;
@@ -21,6 +26,22 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.headerTitleStack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.backButton {
+  border: none;
+  background: transparent;
+  color: #38bdf8;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
 }
 
 .title {
@@ -83,15 +104,14 @@
   flex: 1;
   overflow-y: auto;
   padding: 24px 32px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  position: relative;
 }
 
 .bubbleRow {
   display: flex;
   flex-direction: column;
   max-width: 70%;
+  margin-bottom: 16px;
 }
 
 .userRow {
@@ -690,5 +710,56 @@
   .chatPanel {
     flex: unset;
     width: 100%;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .videoStage {
+    aspect-ratio: 4 / 3;
+  }
+}
+
+@media (max-width: 767px) {
+  .container {
+    min-height: calc(100vh - 72px);
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+    padding: 16px;
+  }
+
+  .viewArea {
+    flex: 1;
+  }
+
+  .messageList {
+    padding: 16px;
+  }
+
+  .inputBar,
+  .chatInputBar {
+    flex-direction: column;
+  }
+
+  .inputBar button,
+  .chatInputBar button {
+    width: 100%;
+  }
+
+  .sessionLayout {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .videoStage {
+    aspect-ratio: 9 / 16;
+  }
+
+  .localPreview {
+    width: 120px;
+    height: 180px;
   }
 }

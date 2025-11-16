@@ -6,7 +6,13 @@
   color-scheme: dark;
   background-color: #040615;
   color: #f8fafc;
+  --font-scale: 1;
 }
+
+html[data-contrast='high'] {
+  filter: contrast(1.1) saturate(1.05);
+}
+
 @layer base {
   * {
     box-sizing: border-box;
@@ -14,9 +20,33 @@
 
   body {
     @apply m-0 min-h-screen bg-midnight text-white antialiased;
+    font-size: calc(16px * var(--font-scale, 1));
+    -webkit-text-size-adjust: 100%;
   }
 
   main {
     @apply min-h-screen;
+  }
+
+  button,
+  a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  *:focus-visible {
+    outline: 2px solid #38bdf8;
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }

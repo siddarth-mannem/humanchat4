@@ -13,6 +13,8 @@ import RequestForm from './RequestForm';
 interface ConversationViewProps {
   activeConversationId?: string;
   onSelectConversation?: (conversationId: string) => void;
+  isMobile?: boolean;
+  onBack?: () => void;
 }
 
 type ScrollBinding = {
@@ -20,7 +22,7 @@ type ScrollBinding = {
   cleanup?: () => void;
 };
 
-export default function ConversationView({ activeConversationId, onSelectConversation }: ConversationViewProps) {
+export default function ConversationView({ activeConversationId, onSelectConversation, isMobile, onBack }: ConversationViewProps) {
   const { conversation, session, messages, loading, error } = useConversationDetail(activeConversationId);
   const scrollPositions = useRef<Map<string, number>>(new Map());
   const bindingRef = useRef<ScrollBinding>({ node: null });
@@ -84,9 +86,14 @@ export default function ConversationView({ activeConversationId, onSelectConvers
 
   return (
     <>
-      <section className={styles.container}>
+      <section className={clsx(styles.container, isMobile && styles.mobileContainer)}>
       <div className={styles.header}>
-        <div>
+        <div className={styles.headerTitleStack}>
+          {isMobile && (
+            <button type="button" className={styles.backButton} onClick={onBack}>
+              ← Back
+            </button>
+          )}
           <div className={styles.title}>{summary.title}</div>
           <div className={styles.subtitle}>{summary.subtitle}</div>
         </div>

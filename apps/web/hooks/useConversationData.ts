@@ -77,6 +77,7 @@ const ensureSamConversation = (collection: Conversation[]): Conversation => {
 export const useConversationData = () => {
   const [payload, setPayload] = useState<ConversationPayload | null>(null);
   const [error, setError] = useState<Error | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     const subscription = liveQuery(fetchConversationPayload).subscribe({
@@ -91,6 +92,27 @@ export const useConversationData = () => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return () => undefined;
+    const handler = () => {
+      void reload();
+    };
+    window.addEventListener('humanchat-sync', handler as EventListener);
+    return () => {
+      window.removeEventListener('humanchat-sync', handler as EventListener);
+    };
+  }, []);
+
+  const reload = async () => {
+    setRefreshing(true);
+    try {
+      const next = await fetchConversationPayload();
+      setPayload(next);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const conversations: ConversationListEntry[] = useMemo(() => {
     if (!payload) {
@@ -155,9 +177,14 @@ export const useConversationData = () => {
     return conversations.slice(1).some((entry) => entry.conversation.type === 'human');
   }, [conversations]);
 
+  const unreadTotal = conversations.reduce((sum, entry) => sum + (entry.conversation.unreadCount ?? 0), 0);
+
   return {
     conversations,
     hasHumanConversations,
-    error
+    error,
+    reload,
+    refreshing,
+    unreadTotal
   };
 };

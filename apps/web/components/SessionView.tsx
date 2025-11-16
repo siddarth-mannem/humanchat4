@@ -8,6 +8,8 @@ import ChatArea from './ChatArea';
 import EndCallFlow from './EndCallFlow';
 import DonationModal from './DonationModal';
 import { sessionStatusManager } from '../services/sessionStatusManager';
+import VirtualMessageList from './VirtualMessageList';
+import MessageBubble from './MessageBubble';
 
 interface SessionViewProps {
   conversation: Conversation;
@@ -67,16 +69,14 @@ export default function SessionView({ conversation, session, messages, registerS
     return (
       <div className={styles.archivedView}>
         <div className={styles.archivedNotice}>This session has ended. Messages are read-only.</div>
-        <div className={styles.messageList} ref={registerScrollContainer}>
-          {orderedMessages.map((message) => (
-            <div
-              key={message.id ?? `${message.timestamp}-${message.senderId}`}
-              className={`${styles.bubbleRow} ${isUserMessage(message, conversation) ? styles.userRow : styles.samRow}`}
-            >
-              <div className={styles.bubble}>{message.content}</div>
-            </div>
-          ))}
-        </div>
+        <VirtualMessageList messages={orderedMessages} className={styles.messageList} registerScrollContainer={registerScrollContainer}>
+          {(message) => (
+            <MessageBubble
+              message={message}
+              variant={isUserMessage(message, conversation) ? 'user' : 'sam'}
+            />
+          )}
+        </VirtualMessageList>
       </div>
     );
   }

@@ -7,6 +7,8 @@ import { sendSamMessage, type ConversationHistoryPayload } from '../utils/samAPI
 import styles from './ConversationView.module.css';
 import MessageBubble from './MessageBubble';
 import ActionRenderer from './ActionRenderer';
+import VirtualMessageList from './VirtualMessageList';
+import { notifyNewMessage } from '../utils/notifications';
 
 interface SamChatViewProps {
   conversation: Conversation;
@@ -99,6 +101,7 @@ export default function SamChatView({
       actions,
       timestamp: Date.now()
     });
+    await notifyNewMessage('Sam Concierge', content);
   };
 
   const handleCreateSessionAction = async (nextConversation: Conversation, session: Session) => {
@@ -124,6 +127,14 @@ export default function SamChatView({
     } catch (error) {
       console.error(error);
     }
+  };
+
+  const handleQuickReply = (message: Message) => {
+    setDraft((prev) => {
+      if (prev.includes(message.content)) return prev;
+      const quoted = `"${message.content}"`;
+      return prev ? `${prev}\n${quoted}` : quoted;
+    });
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -188,11 +199,16 @@ export default function SamChatView({
 
   return (
     <div className={styles.samView}>
-      <div className={styles.messageList} ref={handleContainerRef}>
-        {orderedMessages.map((message) => {
+      <VirtualMessageList messages={orderedMessages} className={styles.messageList} registerScrollContainer={handleContainerRef}>
+        {(message) => {
           const fromSam = isSamMessage(message);
           return (
-            <MessageBubble key={message.id ?? `${message.timestamp}-${message.senderId}`} message={message} variant={fromSam ? 'sam' : 'user'}>
+            <MessageBubble
+              key={message.id ?? `${message.timestamp}-${message.senderId}`}
+              message={message}
+              variant={fromSam ? 'sam' : 'user'}
+              onQuickReply={handleQuickReply}
+            >
               {fromSam && message.actions && message.actions.length > 0 && (
                 <div className={styles.actionStack}>
                   {message.actions.map((action, index) => (
@@ -210,8 +226,8 @@ export default function SamChatView({
               )}
             </MessageBubble>
           );
-        })}
-      </div>
+        }}
+      </VirtualMessageList>
       <form className={styles.inputBar} onSubmit={handleSubmit}>
         <textarea
           placeholder="Message Sam..."

@@ -9,6 +9,7 @@ import { sessionStatusManager } from '../services/sessionStatusManager';
 import CalendarSlotPicker from './CalendarSlotPicker';
 import BookingConfirmation from './BookingConfirmation';
 import styles from './BookingModal.module.css';
+import { scheduleCallReminder } from '../utils/notifications';
 
 interface BookingModalProps {
   open: boolean;
@@ -163,6 +164,7 @@ export default function BookingModal({ open, profile, conversation, onClose }: B
         console.warn('Sam booking notification failed', error);
       });
 
+      await scheduleCallReminder(new Date(selection.slot.start).getTime(), profile.name ?? 'your host');
       setStep('success');
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'Unable to confirm booking');

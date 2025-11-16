@@ -1,6 +1,7 @@
 'use client';
 
 import clsx from 'clsx';
+import { useRef } from 'react';
 import type { ReactNode } from 'react';
 import type { Message } from '../../../src/lib/db';
 import styles from './ConversationView.module.css';
@@ -9,11 +10,38 @@ interface MessageBubbleProps {
   message: Message;
   variant: 'sam' | 'user';
   children?: ReactNode;
+  onQuickReply?: (message: Message) => void;
 }
 
-export default function MessageBubble({ message, variant, children }: MessageBubbleProps) {
+export default function MessageBubble({ message, variant, children, onQuickReply }: MessageBubbleProps) {
+  const touchStartX = useRef<number | null>(null);
+  const touchDelta = useRef(0);
+
+  const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    touchStartX.current = event.touches[0].clientX;
+  };
+
+  const handleTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
+    if (touchStartX.current === null) return;
+    touchDelta.current = event.touches[0].clientX - touchStartX.current;
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStartX.current === null) return;
+    if (touchDelta.current > 60 && onQuickReply) {
+      onQuickReply(message);
+    }
+    touchStartX.current = null;
+    touchDelta.current = 0;
+  };
+
   return (
-    <div className={clsx(styles.bubbleRow, variant === 'sam' ? styles.samRow : styles.userRow)}>
+    <div
+      className={clsx(styles.bubbleRow, variant === 'sam' ? styles.samRow : styles.userRow)}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
       <div className={styles.messageBubble}>
         <div className={styles.bubble}>{message.content}</div>
         {children}

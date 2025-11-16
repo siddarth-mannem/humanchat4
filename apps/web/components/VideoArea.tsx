@@ -10,6 +10,8 @@ import SessionControls from './SessionControls';
 import SessionTimer from './SessionTimer';
 import BillingDisplay, { computeInstantTotal } from './BillingDisplay';
 import styles from './ConversationView.module.css';
+import { useBreakpoint } from '../hooks/useBreakpoint';
+import { notifyPaymentComplete } from '../utils/notifications';
 
 export interface CallEndSummary {
   durationSeconds: number;
@@ -43,6 +45,8 @@ export default function VideoArea({ session, currentUserId, onCallEnd }: VideoAr
   const markedStartRef = useRef(false);
   const endingRef = useRef(false);
   const isConfidential = Boolean(session.confidentialRate);
+  const { isMobile } = useBreakpoint();
+  const [isPiP, setPiP] = useState(false);
 
   const isInitiator = useMemo(() => session.hostUserId === currentUserId, [session.hostUserId, currentUserId]);
 
@@ -110,10 +114,80 @@ export default function VideoArea({ session, currentUserId, onCallEnd }: VideoAr
     return () => window.clearInterval(interval);
   }, [callState]);
 
+  useEffect(() => {
+    const video = remoteVideoRef.current;
+    if (!video) return;
+    const handleEnter = () => setPiP(true);
+    const handleLeave = () => setPiP(false);
+    video.addEventListener('enterpictureinpicture', handleEnter);
+    video.addEventListener('leavepictureinpicture', handleLeave);
+    return () => {
+      video.removeEventListener('enterpictureinpicture', handleEnter);
+      video.removeEventListener('leavepictureinpicture', handleLeave);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isMobile || callState !== 'connected') return;
+    const orientation = screen.orientation as ScreenOrientation & {
+      lock?: (mode: string) => Promise<void>;
+      unlock?: () => void;
+    };
+    if (!orientation?.lock) return;
+    orientation.lock('landscape').catch(() => undefined);
+    return () => {
+      orientation.unlock?.();
+    };
+  }, [callState, isMobile]);
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden' && callState === 'connected' && !isPiP) {
+        void handleTogglePiP();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [callState, isPiP]);
+
   const handleToggleMute = () => {
     const enabled = callRef.current?.toggleMute();
     if (typeof enabled === 'boolean') {
       setMuted(!enabled);
+    }
+  };
+
+  const canShare = typeof navigator !== 'undefined' && Boolean(navigator.share);
+
+  const handleShareInvite = async () => {
+    const peerId = session.hostUserId === currentUserId ? session.guestUserId : session.hostUserId;
+    const url = typeof window !== 'undefined' ? `${window.location.origin}/chat?session=${session.sessionId}` : '';
+    const shareData = {
+      title: 'Join my HumanChat session',
+      text: `Join me${peerId ? ` and ${peerId}` : ''} on HumanChat right now`,
+      url
+    };
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else if (navigator.clipboard) {
+        await navigator.clipboard.writeText(shareData.url ?? url);
+      }
+    } catch (err) {
+      console.warn('Share failed', err);
+    }
+  };
+
+  const handleTogglePiP = async () => {
+    if (!document.pictureInPictureEnabled || !remoteVideoRef.current) return;
+    try {
+      if (isPiP) {
+        await document.exitPictureInPicture();
+      } else {
+        await remoteVideoRef.current.requestPictureInPicture();
+      }
+    } catch (err) {
+      console.warn('PiP toggle failed', err);
     }
   };
 
@@ -181,7 +255,7 @@ export default function VideoArea({ session, currentUserId, onCallEnd }: VideoAr
         captureMethod: session.type === 'scheduled' ? 'automatic' : 'manual',
         finalAmount: total
       });
-      onCallEnd({
+      const summary = {
         durationSeconds: elapsedSeconds,
         totalAmount: payment.amount,
         currency: payment.currency,
@@ -192,7 +266,9 @@ export default function VideoArea({ session, currentUserId, onCallEnd }: VideoAr
         sessionId: session.sessionId,
         confidentialRate: isConfidential,
         representativeName: session.representativeName ?? null
-      });
+      } as const;
+      await notifyPaymentComplete(payment.amount, payment.currency);
+      onCallEnd(summary);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Payment failed');
       onCallEnd({
@@ -220,7 +296,17 @@ export default function VideoArea({ session, currentUserId, onCallEnd }: VideoAr
         <video ref={localVideoRef} playsInline autoPlay muted className={styles.localPreview} />
         {(callState !== 'connected' || error) && <div className={styles.videoOverlay}>{error ?? 'Connecting…'}</div>}
         <div className={styles.controlsOverlay}>
-          <SessionControls isMuted={isMuted} isVideoOff={isVideoOff} onToggleMute={handleToggleMute} onToggleVideo={handleToggleVideo} onEndCall={handleEndCall} disabled={callState === 'connecting' || callState === 'failed'} />
+          <SessionControls
+            isMuted={isMuted}
+            isVideoOff={isVideoOff}
+            onToggleMute={handleToggleMute}
+            onToggleVideo={handleToggleVideo}
+            onEndCall={handleEndCall}
+            onShareInvite={handleShareInvite}
+            onTogglePiP={handleTogglePiP}
+            canShare={canShare}
+            disabled={callState === 'connecting' || callState === 'failed'}
+          />
         </div>
       </div>
     </div>

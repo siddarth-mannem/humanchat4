@@ -1,6 +1,7 @@
 import './globals.css';
 import type { ReactNode } from 'react';
 import { Inter, Space_Grotesk } from 'next/font/google';
+import PWAInitializer from '../components/PWAInitializer';
 
 export const metadata = {
   title: 'HumanChat — Talk to Anyone, About Anything',
@@ -13,7 +14,10 @@ const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-displ
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`}>
-      <body className="bg-midnight text-white font-body antialiased">{children}</body>
+      <body className="bg-midnight text-white font-body antialiased">
+        <PWAInitializer />
+        {children}
+      </body>
     </html>
   );
 }
