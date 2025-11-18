@@ -98,13 +98,26 @@ export default function SignupPage() {
     <div className="min-h-screen bg-midnight text-white">
       <div className="mx-auto flex max-w-5xl flex-col gap-12 px-4 py-16 sm:px-6 lg:py-24">
         <div className="rounded-[40px] border border-white/10 bg-gradient-to-br from-indigoGlow/25 via-midnight to-aqua/10 p-10 shadow-[0_40px_120px_rgba(9,9,32,0.85)]">
-          <p className="text-xs uppercase tracking-[0.5em] text-white/70">Sign up</p>
-          <h1 className="mt-6 font-display text-4xl text-white sm:text-5xl">Start chatting with Sam</h1>
-          <p className="mt-4 max-w-3xl text-lg text-slate-100">
-            Tell us if you are joining as a host, an operator, or a team. We will guide you through payouts, access, and
-            guardrails so Sam can introduce you to the right humans within minutes.
-          </p>
-          <SignupActions />
+          <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)]">
+            <div>
+              <p className="text-xs uppercase tracking-[0.5em] text-white/70">Sign up</p>
+              <h1 className="mt-6 font-display text-4xl text-white sm:text-5xl">Start chatting with Sam</h1>
+              <p className="mt-4 max-w-3xl text-lg text-slate-100">
+                Tell us if you are joining as a host, an operator, or a team. We will guide you through payouts, access,
+                and guardrails so Sam can introduce you to the right humans within minutes.
+              </p>
+              <div className="mt-6 rounded-3xl border border-white/15 bg-white/5 p-5 text-sm text-slate-100">
+                <p className="font-semibold uppercase tracking-[0.35em] text-white/70">Instant access</p>
+                <p className="mt-3">
+                  Choose one of the options on the right to continue with Google or request a magic link straight to your
+                  inbox.
+                </p>
+              </div>
+            </div>
+            <div className="rounded-[32px] border border-white/15 bg-midnight/70 p-6 shadow-[0_30px_70px_rgba(5,9,35,0.55)]">
+              <SignupActions />
+            </div>
+          </div>
         </div>
 
         <section>

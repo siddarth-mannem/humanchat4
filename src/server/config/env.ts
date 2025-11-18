@@ -9,6 +9,7 @@ export const env = {
   redisUrl: process.env.REDIS_URL ?? 'redis://localhost:6379',
   jwtSecret: process.env.JWT_SECRET ?? 'dev-secret-change-me',
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? '24h',
+  supabaseJwtSecret: process.env.SUPABASE_JWT_SECRET,
   cookieDomain: process.env.COOKIE_DOMAIN,
   stripeSecretKey: process.env.STRIPE_SECRET_KEY ?? 'sk_test_placeholder',
   stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET,

@@ -7,7 +7,8 @@ import {
   verifyMagicLink,
   buildGoogleAuthUrl,
   handleGoogleCallback,
-  parseGoogleState
+  parseGoogleState,
+  loginWithSupabaseToken
 } from '../services/authService.js';
 import { getUserById } from '../services/userService.js';
 import { authenticate } from '../middleware/auth.js';
@@ -58,6 +59,19 @@ router.post('/magic-link', unauthenticatedLimiter, async (req, res, next) => {
     const payload = magicSchema.parse(req.body);
     await requestMagicLink(payload.email, payload.rememberMe ?? false);
     success(res, { message: 'Magic link sent' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+const supabaseSchema = z.object({ accessToken: z.string().min(16) });
+
+router.post('/supabase', unauthenticatedLimiter, async (req, res, next) => {
+  try {
+    const payload = supabaseSchema.parse(req.body);
+    const user = await loginWithSupabaseToken(payload.accessToken);
+    await issueAuthCookies(res, user, true);
+    success(res, { user });
   } catch (error) {
     next(error);
   }

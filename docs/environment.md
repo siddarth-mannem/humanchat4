@@ -13,9 +13,11 @@ Use this guide to configure production, staging, and local environments for Huma
 | Frontend | `NEXT_PUBLIC_GEMINI_API_KEY` | Optional Gemini key for client-side experiments. |
 | Frontend | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL used by the browser client. |
 | Frontend | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon/public key for client-side auth. |
+| Backend | `SUPABASE_JWT_SECRET` | Supabase JWT secret (Settings → API) so the API can verify Supabase sessions. |
 | Backend | `DATABASE_URL` | Postgres connection string from Supabase/Railway. |
 | Backend | `REDIS_URL` | Upstash Redis REST/Redis URL. |
 | Backend | `JWT_SECRET` | 32+ char secret for user tokens. |
+| Backend | `SUPABASE_JWT_SECRET` | JWT secret from Supabase (Settings → API) used to verify auth tokens. |
 | Backend | `STRIPE_SECRET_KEY` | Live-mode Stripe secret. |
 | Backend | `STRIPE_WEBHOOK_SECRET` | Webhook verifier from Stripe dashboard. |
 | Backend | `GEMINI_API_KEY` | Server-side Gemini key. |

@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'node:crypto';
 import nodemailer from 'nodemailer';
 import { OAuth2Client } from 'google-auth-library';
+import jwt, { JwtPayload } from 'jsonwebtoken';
 import { query } from '../db/postgres.js';
 import { env } from '../config/env.js';
 import { ApiError } from '../errors/ApiError.js';
@@ -19,6 +20,11 @@ interface MagicLinkRow {
   remember_me: boolean;
   expires_at: string;
   consumed: boolean;
+}
+
+interface SupabaseTokenPayload extends JwtPayload {
+  email?: string;
+  user_metadata?: Record<string, unknown>;
 }
 
 const MAGIC_LINK_TTL_MINUTES = 15;
@@ -127,6 +133,45 @@ export const verifyMagicLink = async (token: string): Promise<{ user: User; reme
     throw new ApiError(404, 'NOT_FOUND', 'User not found');
   }
   return { user: user.rows[0], rememberMe: link.remember_me };
+};
+
+const readMetadataValue = (metadata: Record<string, unknown> | undefined, keys: string[]): string | undefined => {
+  if (!metadata) return undefined;
+  for (const key of keys) {
+    const value = metadata[key];
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+  }
+  return undefined;
+};
+
+export const loginWithSupabaseToken = async (accessToken: string): Promise<User> => {
+  if (!env.supabaseJwtSecret) {
+    throw new ApiError(503, 'SERVER_ERROR', 'Supabase auth not configured');
+  }
+
+  let payload: SupabaseTokenPayload;
+  try {
+    payload = jwt.verify(accessToken, env.supabaseJwtSecret) as SupabaseTokenPayload;
+  } catch (error) {
+    throw new ApiError(401, 'UNAUTHORIZED', 'Supabase token invalid or expired');
+  }
+
+  if (!payload.email) {
+    throw new ApiError(400, 'INVALID_REQUEST', 'Supabase token missing email');
+  }
+
+  const metadata = payload.user_metadata;
+  const nameHint = readMetadataValue(metadata, ['full_name', 'name', 'fullName']);
+  const avatarUrl = readMetadataValue(metadata, ['avatar_url', 'avatarUrl', 'picture']);
+
+  const user = await ensureUserByEmail(payload.email, nameHint);
+  if (avatarUrl) {
+    await query('UPDATE users SET avatar_url = $2, updated_at = NOW() WHERE id = $1', [user.id, avatarUrl]);
+    return { ...user, avatar_url: avatarUrl };
+  }
+  return user;
 };
 
 export const buildGoogleAuthUrl = (state: Record<string, unknown> = {}): string => {
