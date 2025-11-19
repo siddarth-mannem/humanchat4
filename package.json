@@ -16,7 +16,7 @@
     "clean": "rm -rf dist",
     "dev": "tsx src/server/index.ts",
     "db:migrate": "tsx scripts/run-migrations.ts",
-    "start": "node dist/server/index.js",
+    "start": "node dist/src/server/index.js",
     "web:dev": "next dev apps/web --hostname 127.0.0.1 --port 3000",
     "web:build": "tsx scripts/web-build.ts",
     "web:start": "next start apps/web"
