@@ -1,10 +1,12 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { getSupabaseBrowserClient } from '../lib/supabaseClient';
+import { GoogleAuthProvider, sendSignInLinkToEmail, signInWithPopup } from 'firebase/auth';
+import { firebaseAuth } from '../lib/firebaseClient';
 
 export default function SignupActions() {
-  const supabase = useMemo(() => getSupabaseBrowserClient(), []);
+  const auth = firebaseAuth;
+  const googleProvider = useMemo(() => new GoogleAuthProvider(), []);
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -12,19 +14,7 @@ export default function SignupActions() {
   const handleGoogleSignIn = async () => {
     setError(null);
     try {
-      const redirectTo = `${window.location.origin}/chat`;
-      const { error: authError } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo,
-          queryParams: {
-            prompt: 'consent'
-          }
-        }
-      });
-      if (authError) {
-        setError(authError.message);
-      }
+      await signInWithPopup(auth, googleProvider);
     } catch (authIssue) {
       setError(authIssue instanceof Error ? authIssue.message : 'Unable to start Google sign in.');
     }
@@ -42,18 +32,11 @@ export default function SignupActions() {
 
     try {
       const redirectTo = `${window.location.origin}/chat`;
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email: email.trim(),
-        options: {
-          emailRedirectTo: redirectTo
-        }
+      await sendSignInLinkToEmail(auth, email.trim(), {
+        url: redirectTo,
+        handleCodeInApp: true
       });
-
-      if (otpError) {
-        setStatus('idle');
-        setError(otpError.message);
-        return;
-      }
+      window.localStorage.setItem('hc_email_link', email.trim());
 
       setStatus('sent');
       setEmail('');

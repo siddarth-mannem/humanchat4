@@ -11,13 +11,15 @@ Use this guide to configure production, staging, and local environments for Huma
 | Frontend | `NEXT_PUBLIC_WS_URL` | WSS endpoint for real-time updates. |
 | Frontend | `NEXT_PUBLIC_STRIPE_PUBLIC_KEY` | Publishable Stripe key. |
 | Frontend | `NEXT_PUBLIC_GEMINI_API_KEY` | Optional Gemini key for client-side experiments. |
-| Frontend | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL used by the browser client. |
-| Frontend | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon/public key for client-side auth. |
-| Backend | `SUPABASE_JWT_SECRET` | Supabase JWT secret (Settings → API) so the API can verify Supabase sessions. |
-| Backend | `DATABASE_URL` | Postgres connection string from Supabase/Railway. |
+| Frontend | `NEXT_PUBLIC_FIREBASE_API_KEY` | Firebase Web API key for client auth flows. |
+| Frontend | `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase auth domain (e.g., `project.firebaseapp.com`). |
+| Frontend | `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Firebase project ID so the client can bootstrap. |
+| Backend | `FIREBASE_PROJECT_ID` | Same Firebase project ID used by the admin SDK. |
+| Backend | `FIREBASE_CLIENT_EMAIL` | Service-account client email for Firebase Admin. |
+| Backend | `FIREBASE_PRIVATE_KEY` | Private key (escape `\n`) for Firebase Admin credentials. |
+| Backend | `DATABASE_URL` | Cloud SQL for PostgreSQL connection string. |
 | Backend | `REDIS_URL` | Upstash Redis REST/Redis URL. |
 | Backend | `JWT_SECRET` | 32+ char secret for user tokens. |
-| Backend | `SUPABASE_JWT_SECRET` | JWT secret from Supabase (Settings → API) used to verify auth tokens. |
 | Backend | `STRIPE_SECRET_KEY` | Live-mode Stripe secret. |
 | Backend | `STRIPE_WEBHOOK_SECRET` | Webhook verifier from Stripe dashboard. |
 | Backend | `GEMINI_API_KEY` | Server-side Gemini key. |
@@ -32,13 +34,13 @@ Use this guide to configure production, staging, and local environments for Huma
 1. Duplicate `.env.example` to `.env` for local dev; fill with sandbox credentials.
 2. Run `./scripts/verify-env.sh` before any deploy pipeline.
 3. In Vercel project settings, add frontend keys under **Environment Variables → Production**.
-4. In Railway services (`api`, `ws`), paste backend keys for each environment.
-5. Store master secrets in 1Password; reference them via GitHub Actions secrets (`VERCEL_TOKEN`, `RAILWAY_TOKEN`, etc.).
+4. In Cloud Run service configuration, set backend keys (or reference Secret Manager entries) for each environment.
+5. Store master secrets in 1Password; reference them via GitHub Actions secrets (`VERCEL_TOKEN`, `GCP_SA_KEY`, etc.).
 6. Rotate secrets quarterly or immediately after an incident; update IaC variable files and provider dashboards.
 
 ## Promotion Flow
 - Update staging environment first, run smoke tests.
-- Once staging is healthy, copy values to production via provider dashboards or `railway variables copy`.
+- Once staging is healthy, copy values to production via provider dashboards or Terraform variable files/Secret Manager copy.
 
 ## Validation Checklist
 - `npm run test` passes.

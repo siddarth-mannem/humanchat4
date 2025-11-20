@@ -361,11 +361,13 @@ export const publishAdminAnnouncement = async (authorId: string, message: string
 
 export const listAdminAnnouncements = async (): Promise<AdminAnnouncement[]> => {
   const raw = await redis.lrange(ADMIN_FEED_KEY, 0, 19);
-  return raw.map((entry) => {
-    try {
-      return JSON.parse(entry) as AdminAnnouncement;
-    } catch {
-      return null;
-    }
-  }).filter((entry): entry is AdminAnnouncement => Boolean(entry));
+  return raw
+    .map((entry: string) => {
+      try {
+        return JSON.parse(entry) as AdminAnnouncement;
+      } catch {
+        return null;
+      }
+    })
+    .filter((entry: AdminAnnouncement | null): entry is AdminAnnouncement => Boolean(entry));
 };

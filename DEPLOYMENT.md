@@ -7,9 +7,9 @@ This doc complements `docs/environment.md`, `docs/monitoring.md`, and the Terraf
 - **Production**: `humanchat.com`, `api.humanchat.com`, `ws.humanchat.com`
 
 ## Environment Variables
-See `docs/environment.md` for full list. Key provider-specific secrets:
+See `docs/environment.md` for the master list. Provider-specific highlights:
 - `VERCEL_TOKEN`, `VERCEL_TEAM`
-- `RAILWAY_TOKEN`
+- `GCP_PROJECT`, `GOOGLE_APPLICATION_CREDENTIALS` (service-account JSON for Cloud Run deploys)
 - `SUPABASE_TOKEN`
 - `CLOUDFLARE_TOKEN`, `CLOUDFLARE_ZONE_ID`
 - `UPSTASH_EMAIL`, `UPSTASH_API_KEY`
@@ -20,8 +20,8 @@ See `docs/environment.md` for full list. Key provider-specific secrets:
    - Upload coverage.
 2. On `main` success:
    - `scripts/deploy-web.sh` → Vercel production deploy.
-   - `scripts/deploy-api.sh` + `scripts/deploy-ws.sh` → Railway services.
-   - `scripts/migrate.sh` invoked via Railway command to run DB migrations.
+   - `scripts/deploy-api.sh` (Cloud Run) builds/pushes the Docker image and deploys the HTTP/WebSocket service.
+   - `scripts/migrate.sh` runs against Supabase using the same credentials as the Cloud Run service.
 3. Notify Slack channel once health checks pass.
 
 ## Terraform Workflow
@@ -38,13 +38,14 @@ Variables file should contain provider tokens and environment-specific URLs. Out
 ```bash
 ./scripts/verify-env.sh
 ./scripts/deploy-web.sh
-SERVICE_NAME=api ./scripts/deploy-api.sh
-SERVICE_NAME=ws ./scripts/deploy-ws.sh
+PROJECT_ID=<gcp-project> REGION=us-central1 SERVICE_NAME=humanchat-api \
+   ENV_FILE=.env.cloudrun ./scripts/deploy-api.sh
 ```
+The `ENV_FILE` should contain production-safe key/value pairs (no comments) that match the variables required by `src/server/config/env.ts`. See `infra/google-cloud/README.md` for details.
 
 ## Rollback Procedures
 - **Frontend**: `vercel rollback --to <deployment-id>` or select previous build in dashboard.
-- **API/WS**: `railway deployments` → `railway rollback --service api <deployment-id>`.
+- **API/WS**: `gcloud run services list` → `gcloud run services update-traffic humanchat-api --to-revisions <rev>=100`.
 - **Database**: Restore from latest Supabase snapshot (see `docs/backup-restore.md`). Update `DATABASE_URL` secrets, redeploy API.
 - **Feature flags**: Toggle via config service (future) or env vars.
 

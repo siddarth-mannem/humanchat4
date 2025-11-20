@@ -1,4 +1,4 @@
-import Redis from 'ioredis';
+import { Redis } from 'ioredis';
 import { env } from '../config/env.js';
 
 declare global {
@@ -8,14 +8,14 @@ declare global {
 
 const globalRedis = globalThis as typeof globalThis & { __humanchatRedis__?: Redis };
 
-const sharedRedis = globalRedis.__humanchatRedis__ ?? new Redis(env.redisUrl);
+const sharedRedis: Redis = globalRedis.__humanchatRedis__ ?? new Redis(env.redisUrl);
 if (!globalRedis.__humanchatRedis__) {
   globalRedis.__humanchatRedis__ = sharedRedis;
 }
 
 export const redis = sharedRedis;
 
-redis.on('error', (error) => {
+redis.on('error', (error: Error) => {
   console.error('[Redis] connection error', error);
 });
 

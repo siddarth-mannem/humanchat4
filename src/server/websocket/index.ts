@@ -3,6 +3,7 @@ import { WebSocketServer, WebSocket, RawData } from 'ws';
 import { parse } from 'url';
 import { redis } from '../db/redis.js';
 
+
 const sessionChannels = new Map<string, Set<WebSocket>>();
 const sessionMeta = new WeakMap<WebSocket, { sessionId: string; userId?: string }>();
 const statusClients = new Set<WebSocket>();
@@ -66,7 +67,7 @@ const handleSessionMessage = (sessionId: string, socket: WebSocket, raw: RawData
   broadcastToSession(sessionId, envelope, socket);
 };
 
-export const setupWebSockets = (server: Server): void => {
+export const setupWebSockets = (server: Server): { wss: WebSocketServer; close: () => Promise<void> } => {
   const wss = new WebSocketServer({ server });
 
   wss.on('connection', (socket, req) => {
@@ -97,7 +98,7 @@ export const setupWebSockets = (server: Server): void => {
         })
       );
 
-      socket.on('message', (message) => handleSessionMessage(sessionId, socket, message));
+      socket.on('message', (message: RawData) => handleSessionMessage(sessionId, socket, message));
       socket.on('close', () => {
         removeSocket(sessionChannels.get(sessionId), socket);
         sessionMeta.delete(socket);
@@ -124,7 +125,7 @@ export const setupWebSockets = (server: Server): void => {
 
   const subscriber = redis.duplicate();
   subscriber.subscribe('status', 'session', 'notification');
-  subscriber.on('message', (channel, message) => {
+  subscriber.on('message', (channel: string, message: string) => {
     const payload = JSON.parse(message);
     switch (channel) {
       case 'status':
@@ -140,4 +141,21 @@ export const setupWebSockets = (server: Server): void => {
         break;
     }
   });
+
+  const close = async (): Promise<void> => {
+    await new Promise<void>((resolve) => {
+      wss.close(() => resolve());
+    });
+    const maybeQuit = subscriber as { quit?: () => Promise<unknown> };
+    if (typeof maybeQuit.quit === 'function') {
+      await maybeQuit.quit();
+    } else {
+      const maybeDisconnect = subscriber as { disconnect?: () => void };
+      if (typeof maybeDisconnect.disconnect === 'function') {
+        maybeDisconnect.disconnect();
+      }
+    }
+  };
+
+  return { wss, close };
 };

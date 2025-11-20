@@ -1,11 +1,11 @@
 # Backup & Restore Procedures
 
-## Database (Supabase Postgres)
+## Database (Primary Postgres)
 - **Backups**: Automatic daily snapshots kept 7 days. Weekly logical dumps pushed to Cloudflare R2 using `pg_dump` GitHub Action.
-- **Verification**: Monthly restore test into staging DB (`supabase db start --project backup-test`).
+- **Verification**: Monthly restore test into staging DB using an ephemeral Postgres container.
 - **Restore Steps**:
   1. Pause API + WS deploys.
-  2. Provision new Supabase instance or wipe staging DB.
+  2. Provision a fresh managed Postgres instance or wipe staging DB.
   3. Import latest dump: `pg_restore --clean --no-owner -d $DATABASE_URL latest.dump`.
   4. Update `DATABASE_URL` secret in Railway, redeploy API/WS.
 

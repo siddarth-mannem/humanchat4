@@ -13,7 +13,7 @@ for (const file of envFiles) {
   }
 }
 
-const requiredPublicEnv = ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY'];
+const requiredPublicEnv = ['NEXT_PUBLIC_FIREBASE_API_KEY', 'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN', 'NEXT_PUBLIC_FIREBASE_PROJECT_ID'];
 const missingEnv = requiredPublicEnv.filter((key) => !process.env[key]);
 const skipFlag = process.env.SKIP_WEB_BUILD === 'true';
 const forceBuild = process.env.FORCE_WEB_BUILD === 'true';

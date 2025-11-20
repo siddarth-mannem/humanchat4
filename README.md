@@ -17,12 +17,12 @@ Use `npm run test` to verify the suite before shipping.
 
 ## Tech Stack
 - **Frontend**: Next.js 16 (App Router), React 19, Tailwind, Zustand, React Query
-- **Backend**: Express 5, Node 18, PostgreSQL (Supabase/Railway), Redis (Upstash)
-- **Realtime**: WebSockets on Railway + Redis pub/sub
+- **Backend**: Express 5, Node 18, PostgreSQL (Cloud SQL), Redis (Upstash)
+- **Realtime**: WebSockets on Cloud Run + Redis pub/sub
 - **AI**: Google Gemini for Sam concierge orchestration
 - **Payments**: Stripe Connect + webhooks
 - **Testing**: Jest + React Testing Library, Playwright e2e, MSW, fake-indexeddb
-- **Infra**: Vercel (web), Railway (API & WS), Supabase Postgres, Upstash Redis, Cloudflare DNS
+- **Infra**: Vercel (web), Google Cloud Run (API & WS), Cloud SQL for Postgres, Firebase Auth, Upstash Redis, Cloudflare DNS
 
 ## Folder Structure
 
@@ -43,7 +43,7 @@ More detail is available in `ARCHITECTURE.md` and `COMPONENTS.md`.
 ## Environment Setup
 1. Install Node.js 18+ and npm 9+.
 2. Duplicate `.env.example` and fill the backend keys listed in `docs/environment.md`.
-3. For the frontend, configure `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_WS_URL`, Stripe/Gemini public keys.
+3. For the frontend, configure `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_WS_URL`, and the Firebase web keys alongside Stripe/Gemini public keys.
 4. Start Redis/Postgres locally or point to staging resources.
 5. Run `./scripts/verify-env.sh` to assert required secrets.
 
@@ -71,6 +71,7 @@ Launches the Next.js client on `http://localhost:3000`. It uses Dexie for offlin
 - `API_DOCS.md` – REST endpoints, auth, and rate limits
 - `COMPONENTS.md` – component library reference
 - `DEPLOYMENT.md` – prod/staging deployment workflow
+- `infra/google-cloud/README.md` – Cloud Run build/deploy cookbook
 - `CONTRIBUTING.md` – coding standards and PR requirements
 - `docs/` – env setup, monitoring, backup, incident response
 

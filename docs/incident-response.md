@@ -36,7 +36,7 @@
 
 ## Runbooks
 - API restart: `scripts/deploy-api.sh` + verifying health.
-- Database failover: promote Supabase replica; update `DATABASE_URL` secret.
+- Database failover: promote the managed Postgres replica; update `DATABASE_URL` secret.
 - WebSocket overload: increase Railway max scale, flush backlog.
 
 ## Communication Templates

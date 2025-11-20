@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "moduleResolution": "NodeNext",
+    "module": "NodeNext"
+  },
+  "include": [
+    "src/server/**/*",
+    "scripts/**/*"
+  ],
+  "exclude": [
+    "tests",
+    "apps",
+    "e2e",
+    "dist",
+    "node_modules"
+  ]
+}

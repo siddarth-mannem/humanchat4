@@ -8,14 +8,22 @@ import {
   buildGoogleAuthUrl,
   handleGoogleCallback,
   parseGoogleState,
-  loginWithSupabaseToken
+  loginWithFirebaseToken
 } from '../services/authService.js';
 import { getUserById } from '../services/userService.js';
 import { authenticate } from '../middleware/auth.js';
 import { success } from '../utils/apiResponse.js';
 import { unauthenticatedLimiter } from '../middleware/rateLimit.js';
-import { issueAuthCookies, clearAuthCookies, refreshFromRequest } from '../services/tokenService.js';
+import {
+  issueAuthCookies,
+  clearAuthCookies,
+  refreshFromRequest,
+  getSessionByRefreshToken,
+  renewSessionWithRefreshToken,
+  issueAccessCookie
+} from '../services/tokenService.js';
 import { env } from '../config/env.js';
+import { ApiError } from '../errors/ApiError.js';
 
 const router = Router();
 
@@ -64,14 +72,35 @@ router.post('/magic-link', unauthenticatedLimiter, async (req, res, next) => {
   }
 });
 
-const supabaseSchema = z.object({ accessToken: z.string().min(16) });
+const firebaseSchema = z.object({ idToken: z.string().min(16) });
 
-router.post('/supabase', unauthenticatedLimiter, async (req, res, next) => {
+router.post('/firebase', unauthenticatedLimiter, async (req, res, next) => {
   try {
-    const payload = supabaseSchema.parse(req.body);
-    const user = await loginWithSupabaseToken(payload.accessToken);
+    const payload = firebaseSchema.safeParse(req.body);
+    if (!payload.success) {
+      throw new ApiError(400, 'INVALID_REQUEST', 'Invalid Firebase payload', payload.error.issues);
+    }
+    const user = await loginWithFirebaseToken(payload.data.idToken);
+    const refreshToken = req.cookies?.hc_refresh;
+
+    if (refreshToken) {
+      const session = await getSessionByRefreshToken(refreshToken);
+      if (session?.user_id === user.id) {
+        try {
+          await renewSessionWithRefreshToken(refreshToken);
+          issueAccessCookie(res, user);
+          success(res, { user, session: 'refreshed' });
+          return;
+        } catch (error) {
+          await clearAuthCookies(res, refreshToken);
+        }
+      } else {
+        await clearAuthCookies(res, refreshToken);
+      }
+    }
+
     await issueAuthCookies(res, user, true);
-    success(res, { user });
+    success(res, { user, session: 'new' });
   } catch (error) {
     next(error);
   }

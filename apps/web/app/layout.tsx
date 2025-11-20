@@ -2,7 +2,7 @@ import './globals.css';
 import type { ReactNode } from 'react';
 import { Inter, Space_Grotesk } from 'next/font/google';
 import PWAInitializer from '../components/PWAInitializer';
-import SupabaseSessionBridge from '../components/SupabaseSessionBridge';
+import FirebaseSessionBridge from '../components/FirebaseSessionBridge';
 
 export const metadata = {
   title: 'HumanChat — Talk to Anyone, About Anything',
@@ -17,7 +17,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`}>
       <body className="bg-midnight text-white font-body antialiased">
         <PWAInitializer />
-        <SupabaseSessionBridge />
+        <FirebaseSessionBridge />
         {children}
       </body>
     </html>
