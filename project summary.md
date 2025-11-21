@@ -1,10 +1,10 @@
 # HumanChat Project Summary
 
 ## Current Focus
-- Terraform now provisions the full GCP footprint (custom VPC, Serverless VPC connector, Cloud Run API + WebSocket services, Memorystore Redis) alongside Cloudflare DNS and the Vercel frontend; latest apply reconciled DNS and public invoker bindings.
-- Fresh API/WS containers are built through Cloud Build into Artifact Registry and deployed via Terraform; WebSocket revision `humanchat-ws-00005-r6p` is healthy, while the API is still being tuned to connect to Cloud SQL due to password encoding quirks.
-- Cloudflare now proxies `humanchat.com`, `api.humanchat.com`, and `ws.humanchat.com` directly to the GCP services, completing the DNS cutover away from the legacy Railway endpoints.
-- Local `.env` and `infra/terraform.tfvars` contain the authoritative secret set for Firebase, Google, Stripe, Redis, and deployment tokens so we can regenerate infrastructure reproducibly.
+- Manual Search Console verification is complete, letting Terraform own Cloud Run domain mappings for `api` and `ws`; the latest apply removed the old TXT flow and recreated mappings cleanly.
+- Cloudflare CNAMEs now point to the Google-hosted targets emitted by the domain mappings, so traffic routes to GCP while Google-issued certificates advance from `CertificatePending` toward issuance.
+- Cloud Run API/WS services are still built in Cloud Build and deployed via Terraform; both revisions return `200` on their direct `run.app` hostnames even though the `api.humanchat.com` health check still shows `525` until TLS finalizes.
+- Local `.env` and `infra/terraform.tfvars` remain the single source for Firebase, Google, Stripe, Redis, and deployment secrets for reproducible applies and container builds.
 
 ## Backend Highlights
 - Express-based API with Firebase-authenticated sessions, Redis-backed WebSocket signaling, and Stripe integrations.
@@ -21,13 +21,13 @@
 - Scripts folder contains deploy helpers, migration runners, and environment verification utilities.
 
 ## Infrastructure Roadmap
-- Terraform now controls GCP networking, Cloud Run services, Memorystore, Cloudflare DNS, and the Vercel project; Secret Manager integration and CI/CD wiring are still pending.
-- `scripts/deploy-cloud-run.sh` remains available for manual rollouts, but day-to-day deployments now happen through `terraform apply` plus Cloud Build image pushes.
-- Remaining work: finish stabilizing the Cloud SQL connectivity (password encoding + private service access), capture Cloud SQL instance/User/IAM resources in Terraform, and decommission the dormant Railway stack once parity checks pass.
-- Add monitoring/alerts (Cloud Monitoring uptime checks + Log-based metrics) for the new Cloud Run endpoints and document the rollback path before opening the traffic floodgates.
+- Terraform now owns networking, Cloud Run services, Memorystore, Cloudflare DNS, Vercel config, and the new domain mappings; Secret Manager wiring and CI/CD triggers are still out-of-band.
+- `scripts/deploy-cloud-run.sh` still supports one-off rollouts, though the canonical path is `terraform apply` after Cloud Build publishes new images.
+- Remaining infra work: bring the Cloud SQL instance/users/secrets under Terraform, finish validating connector reachability end-to-end, and retire the dormant Railway stack once parity checks pass.
+- Layer in Cloud Monitoring uptime checks, alerting, and rollback documentation before ramping traffic through the custom domains.
 
 ## Next Steps
-1. Resolve the Cloud Run API ↔ Cloud SQL connection issue (sanitize `DATABASE_URL`, verify connector reachability) and redeploy until `/health` succeeds.
+1. Monitor the Cloud Run domain mappings until the managed certificates turn `Ready`, then rerun the custom-domain `/health` checks and capture the results.
 2. Import/manage the Cloud SQL instance, users, and secrets in Terraform so the entire backend stack is codified; remove the old Railway resources afterward.
 3. Wire Cloud Build + Terraform into GitHub Actions with workload identity federation to automate image builds and applies.
 4. Add monitoring/alerting plus a runbook covering DNS rollback and log triage so the new stack can be promoted with confidence.

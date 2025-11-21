@@ -18,6 +18,6 @@ variable "api_image" { type = string }
 variable "ws_image" { type = string }
 
 variable "api_cloud_sql_instances" {
-	type    = list(string)
-	default = []
+  type    = list(string)
+  default = []
 }

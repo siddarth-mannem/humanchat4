@@ -125,3 +125,7 @@ output "hostname" {
 output "service_id" {
   value = google_cloud_run_service.this.id
 }
+
+output "name" {
+  value = google_cloud_run_service.this.name
+}
