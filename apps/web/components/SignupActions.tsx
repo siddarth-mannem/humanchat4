@@ -1,22 +1,30 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { GoogleAuthProvider, sendSignInLinkToEmail, signInWithPopup } from 'firebase/auth';
 import { firebaseAuth } from '../lib/firebaseClient';
 
 export default function SignupActions() {
   const auth = firebaseAuth;
   const googleProvider = useMemo(() => new GoogleAuthProvider(), []);
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
+  const [googleStatus, setGoogleStatus] = useState<'idle' | 'signing-in'>('idle');
   const [error, setError] = useState<string | null>(null);
 
   const handleGoogleSignIn = async () => {
+    if (googleStatus === 'signing-in') return;
+    setGoogleStatus('signing-in');
     setError(null);
     try {
       await signInWithPopup(auth, googleProvider);
+      router.push('/chat?focus=sam');
     } catch (authIssue) {
       setError(authIssue instanceof Error ? authIssue.message : 'Unable to start Google sign in.');
+    } finally {
+      setGoogleStatus('idle');
     }
   };
 
@@ -52,8 +60,9 @@ export default function SignupActions() {
         type="button"
         onClick={handleGoogleSignIn}
         className="inline-flex w-full items-center justify-center rounded-full bg-white px-8 py-3 font-semibold text-midnight transition hover:scale-105 sm:w-auto"
+        disabled={googleStatus === 'signing-in'}
       >
-        Continue with Google
+        {googleStatus === 'signing-in' ? 'Signing in…' : 'Continue with Google'}
       </button>
 
       <form onSubmit={handleMagicLink} className="rounded-3xl border border-white/15 bg-midnight/60 p-6 shadow-lg shadow-black/20">
