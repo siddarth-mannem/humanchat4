@@ -25,8 +25,10 @@ const buildInitials = (name: string): string => {
     .join('');
 };
 
-const SAM_FALLBACK: Conversation = {
-  conversationId: 'sam-concierge',
+export const SAM_CONCIERGE_ID = 'sam-concierge';
+
+export const SAM_FALLBACK_CONVERSATION: Conversation = {
+  conversationId: SAM_CONCIERGE_ID,
   type: 'sam',
   participants: ['sam'],
   lastActivity: Date.now(),
@@ -34,9 +36,9 @@ const SAM_FALLBACK: Conversation = {
 };
 
 const ensureSamConversationRecord = async () => {
-  const existing = await db.conversations.get(SAM_FALLBACK.conversationId);
+  const existing = await db.conversations.get(SAM_CONCIERGE_ID);
   if (existing) return existing;
-  const seeded = { ...SAM_FALLBACK, lastActivity: Date.now() };
+  const seeded = { ...SAM_FALLBACK_CONVERSATION, lastActivity: Date.now() };
   await db.conversations.put(seeded);
   return seeded;
 };
@@ -79,7 +81,7 @@ const buildStatus = (session?: Session | null): 'active' | 'scheduled' | undefin
 };
 
 const ensureSamConversation = (collection: Conversation[]): Conversation => {
-  return collection.find((item) => item.type === 'sam') ?? SAM_FALLBACK;
+  return collection.find((item) => item.type === 'sam') ?? SAM_FALLBACK_CONVERSATION;
 };
 
 export const useConversationData = () => {
@@ -127,7 +129,7 @@ export const useConversationData = () => {
     if (!payload) {
       return [
         {
-          conversation: SAM_FALLBACK,
+          conversation: SAM_FALLBACK_CONVERSATION,
           meta: {
             displayName: 'Sam Concierge',
             initials: 'SAM',

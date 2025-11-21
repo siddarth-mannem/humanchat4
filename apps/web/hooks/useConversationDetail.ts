@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { liveQuery } from 'dexie';
 import { db, type Conversation, type Message, type Session } from '../../../src/lib/db';
+import { SAM_CONCIERGE_ID, SAM_FALLBACK_CONVERSATION } from './useConversationData';
 
 interface ConversationDetailState {
   conversation: Conversation | null;
@@ -20,9 +21,22 @@ const initialState: ConversationDetailState = {
   error: null
 };
 
+const ensureSamConversation = async (): Promise<Conversation> => {
+  const existing = await db.conversations.get(SAM_CONCIERGE_ID);
+  if (existing) return existing;
+  const seeded = { ...SAM_FALLBACK_CONVERSATION, lastActivity: Date.now() };
+  await db.conversations.put(seeded);
+  return seeded;
+};
+
 const fetchConversationDetail = async (conversationId: string) => {
   const conversation = await db.conversations.get(conversationId);
   if (!conversation) {
+    if (conversationId === SAM_CONCIERGE_ID) {
+      const seeded = await ensureSamConversation();
+      const messages = await db.messages.where('conversationId').equals(seeded.conversationId).sortBy('timestamp');
+      return { conversation: seeded, session: null, messages };
+    }
     return null;
   }
 
