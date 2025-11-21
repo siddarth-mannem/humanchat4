@@ -25,6 +25,7 @@ Use this guide to configure production, staging, and local environments for Huma
 | Backend | `GEMINI_API_KEY` | Server-side Gemini key. |
 | Backend | `GOOGLE_OAUTH_CLIENT_ID` | OAuth client. |
 | Backend | `GOOGLE_OAUTH_CLIENT_SECRET` | OAuth secret. |
+| Backend | `POSTGRES_CRYPTO_KEY` | Symmetric key used when encrypting calendar OAuth tokens (feeds `humanchat.crypto_key`). |
 
 ### Optional additions
 - `SENTRY_DSN`, `POSTHOG_API_KEY`, `BETTER_UPTIME_HEARTBEAT`

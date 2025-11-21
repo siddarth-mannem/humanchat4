@@ -4,6 +4,17 @@ import { logger } from '../utils/logger.js';
 
 export const pool = new Pool({ connectionString: env.databaseUrl, max: 10 });
 
+pool.on('connect', (client) => {
+  if (!env.postgresCryptoKey) {
+    return;
+  }
+  client
+    .query('SELECT set_config($1, $2, false)', ['humanchat.crypto_key', env.postgresCryptoKey])
+    .catch((error: Error) => {
+      logger.warn('Failed to prime humanchat.crypto_key parameter', error);
+    });
+});
+
 pool.on('error', (error: Error) => {
   logger.error('PostgreSQL pool error', error);
 });

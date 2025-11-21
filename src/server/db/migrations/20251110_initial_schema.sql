@@ -2,21 +2,6 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "citext";
 
-DO $$
-DECLARE
-  db_name text := current_database();
-  existing_key text;
-BEGIN
-  BEGIN
-    existing_key := current_setting('humanchat.crypto_key');
-  EXCEPTION WHEN undefined_object THEN
-    existing_key := NULL;
-  END;
-  IF existing_key IS NULL OR existing_key = '' THEN
-    EXECUTE format('ALTER DATABASE %I SET humanchat.crypto_key = %L', db_name, 'change-me');
-  END IF;
-END$$;
-
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
