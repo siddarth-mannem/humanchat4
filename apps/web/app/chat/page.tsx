@@ -6,6 +6,7 @@ import ConversationView from '../../components/ConversationView';
 import MobileBottomNav, { type MobileNavRoute } from '../../components/MobileBottomNav';
 import DiscoverPanel from '../../components/DiscoverPanel';
 import ProfilePanel from '../../components/ProfilePanel';
+import LogoutButton from '../../components/LogoutButton';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { useConversationData } from '../../hooks/useConversationData';
 
@@ -66,6 +67,22 @@ export default function ChatPage() {
 
   return (
     <main className="flex min-h-screen flex-col bg-midnight text-white">
+      <div className="flex flex-wrap items-center gap-3 border-b border-white/10 px-4 py-3 text-xs uppercase tracking-[0.3em] text-white/60">
+        <span>Workspace</span>
+        {isTablet && (
+          <button
+            type="button"
+            className="rounded-full border border-white/20 px-3 py-1 text-[11px] normal-case tracking-normal text-white"
+            onClick={() => setSidebarCollapsed((prev) => !prev)}
+          >
+            {sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          </button>
+        )}
+        <div className="ml-auto">
+          <LogoutButton />
+        </div>
+      </div>
+
       <div className="flex flex-1">
         {!isMobile && (
           <ConversationSidebar
@@ -96,18 +113,6 @@ export default function ChatPage() {
           </section>
         ) : (
           <section className="flex flex-1 flex-col">
-            {isTablet && (
-              <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-                <span className="text-sm uppercase tracking-[0.2em] text-white/50">Workspace</span>
-                <button
-                  type="button"
-                  className="rounded-full border border-white/20 px-4 py-1 text-sm"
-                  onClick={() => setSidebarCollapsed((prev) => !prev)}
-                >
-                  {sidebarCollapsed ? 'Expand' : 'Collapse'}
-                </button>
-              </div>
-            )}
             <ConversationView activeConversationId={activeConversationId} onSelectConversation={handleSelectConversation} />
           </section>
         )}
