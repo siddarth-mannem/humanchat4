@@ -104,6 +104,12 @@ const stripJsonFence = (raw?: string): string => {
     .trim();
 };
 
+const mapHistoryToGemini = (history: ConversationHistoryEntry[]) =>
+  history.map((entry) => ({
+    role: entry.role === 'sam' ? 'model' : 'user',
+    parts: [{ text: entry.content }]
+  }));
+
 const getGeminiClient = (): GoogleGenerativeAI | null => {
   if (!env.geminiApiKey) {
     return null;
@@ -125,14 +131,16 @@ export const sendToSam = async ({
 
   const model = geminiClient.getGenerativeModel({
     model: env.geminiModel,
-    generationConfig
+    generationConfig,
+    systemInstruction: SYSTEM_PROMPT
   });
 
   const trimmedHistory = conversationHistory.slice(-12);
   try {
+    const historyContents = mapHistoryToGemini(trimmedHistory);
     const result = await model.generateContent({
       contents: [
-        { role: 'system', parts: [{ text: SYSTEM_PROMPT }] },
+        ...historyContents,
         {
           role: 'user',
           parts: [
