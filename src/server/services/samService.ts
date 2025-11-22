@@ -92,7 +92,9 @@ export const handleSamChat = async (conversationId: string, userId: string, payl
     await addConversationMessage(conversationId, 'sam', response.text, 'sam_response', response.actions);
   } catch (error) {
     const isSamConcierge = conversationId === SAM_CONCIERGE_ID;
-    if (isSamConcierge && error instanceof ApiError && error.code === 'NOT_FOUND') {
+    const isExpectedMissingConversation =
+      error instanceof ApiError && (error.code === 'NOT_FOUND' || error.code === 'INVALID_REQUEST');
+    if (isSamConcierge && isExpectedMissingConversation) {
       logger.warn('Sam conversation missing in DB, skipping persistence until bootstrap is wired.', {
         userId,
         conversationId

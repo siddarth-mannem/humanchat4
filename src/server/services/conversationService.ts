@@ -1,3 +1,5 @@
+import { validate as uuidValidate } from 'uuid';
+
 import { query } from '../db/postgres.js';
 import { ApiError } from '../errors/ApiError.js';
 import { Conversation } from '../types/index.js';
@@ -12,6 +14,12 @@ export interface ConversationMessage {
   actions?: Array<Record<string, unknown>>;
 }
 
+const ensureConversationIdIsUuid = (conversationId: string): void => {
+  if (!uuidValidate(conversationId)) {
+    throw new ApiError(400, 'INVALID_REQUEST', 'Conversation id must be a UUID');
+  }
+};
+
 export const listConversations = async (userId: string): Promise<Conversation[]> => {
   const result = await query<Conversation>(
     `SELECT * FROM conversations WHERE $1 = ANY(participants) ORDER BY last_activity DESC`,
@@ -21,6 +29,7 @@ export const listConversations = async (userId: string): Promise<Conversation[]>
 };
 
 export const getConversationMessages = async (conversationId: string): Promise<ConversationMessage[]> => {
+  ensureConversationIdIsUuid(conversationId);
   const result = await query<ConversationMessage>(
     'SELECT * FROM messages WHERE conversation_id = $1 ORDER BY created_at ASC',
     [conversationId]
@@ -35,6 +44,7 @@ export const addConversationMessage = async (
   type: ConversationMessage['message_type'],
   actions?: ConversationMessage['actions']
 ): Promise<ConversationMessage> => {
+  ensureConversationIdIsUuid(conversationId);
   const conversation = await query<Conversation>('SELECT * FROM conversations WHERE id = $1', [conversationId]);
   if (!conversation.rows[0]) {
     throw new ApiError(404, 'NOT_FOUND', 'Conversation not found');
