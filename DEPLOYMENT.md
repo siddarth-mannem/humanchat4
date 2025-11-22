@@ -24,6 +24,20 @@ See `docs/environment.md` for the master list. Provider-specific highlights:
    - `scripts/migrate.sh` (or `npm run db:migrate` in Cloud Shell) runs against Cloud SQL using the same credentials as the Cloud Run service.
 3. Notify Slack channel once health checks pass.
 
+## Pre-deploy Checklist
+Run these steps locally (or in Cloud Shell) before any manual deploy:
+
+```bash
+# 1. Ensure required secrets/env vars are present.
+ENV_FILE=.env.cloudrun ./scripts/verify-env.sh
+
+# 2. Sync secrets + run database migrations via the Cloud SQL proxy.
+ENV_FILE=.env.cloudrun INSTANCE_CONNECTION="loyal-env-475400-u0:us-central1:users" \
+   ./scripts/sync-env.sh
+```
+
+`scripts/sync-env.sh` will source the specified env file, validate secrets, start the Cloud SQL Auth Proxy (downloading it if necessary), rewrite the local `DATABASE_URL` to use `127.0.0.1:<LOCAL_DB_PORT>`, and run `npm run db:migrate`. Override `LOCAL_DB_PORT` or `MIGRATE_CMD` if needed.
+
 ## Terraform Workflow
 ```bash
 cd infra

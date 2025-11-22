@@ -12,6 +12,9 @@ import { success } from './utils/apiResponse.js';
 
 const app = express();
 
+// Forwarded headers come from Cloud Run's proxy, so trust the first hop to keep rate limiting stable.
+app.set('trust proxy', 1);
+
 app.use(helmet());
 app.use(
   cors({

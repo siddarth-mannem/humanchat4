@@ -22,3 +22,4 @@ apps/web/.next/
 *.tfvars.json
 .terraform/
 infra/.terraform/
+cloud-sql-proxy
