@@ -5,6 +5,8 @@ import { sendToSam } from './samAPI.js';
 import { SamResponse } from '../types/index.js';
 import { searchUsers } from './userService.js';
 import { logRequestedPersonInterest } from './requestedPeopleService.js';
+import { ApiError } from '../errors/ApiError.js';
+import { logger } from '../utils/logger.js';
 
 const SamPayloadSchema = z.object({
   message: z.string().min(1),
@@ -38,6 +40,7 @@ const SamPayloadSchema = z.object({
 export type SamPayload = z.infer<typeof SamPayloadSchema>;
 
 const REQUEST_REGEX = /(?:talk|speak|chat|connect|book)\s+(?:to|with)\s+([A-Za-z][A-Za-z\s.'-]{2,})/i;
+const SAM_CONCIERGE_ID = 'sam-concierge';
 
 const extractRequestedName = (message: string): string | null => {
   const match = message.match(REQUEST_REGEX);
@@ -85,6 +88,18 @@ export const handleSamChat = async (conversationId: string, userId: string, payl
       userContext: parsed.userContext
     }));
 
-  await addConversationMessage(conversationId, 'sam', response.text, 'sam_response', response.actions);
+  try {
+    await addConversationMessage(conversationId, 'sam', response.text, 'sam_response', response.actions);
+  } catch (error) {
+    const isSamConcierge = conversationId === SAM_CONCIERGE_ID;
+    if (isSamConcierge && error instanceof ApiError && error.code === 'NOT_FOUND') {
+      logger.warn('Sam conversation missing in DB, skipping persistence until bootstrap is wired.', {
+        userId,
+        conversationId
+      });
+    } else {
+      throw error;
+    }
+  }
   return response;
 };
