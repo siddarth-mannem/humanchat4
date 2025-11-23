@@ -56,7 +56,7 @@ declare global {
 
 const globalRedis = globalThis as typeof globalThis & { __humanchatRedis__?: Redis };
 
-const createRedisClient = (): Redis => {
+export const createRedisClient = (): Redis => {
   if (!env.redisUrl) {
     console.warn('[Redis] REDIS_URL missing; disabling Redis features until Memorystore is configured.');
     return new NoopRedis() as unknown as Redis;
