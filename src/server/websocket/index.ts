@@ -1,7 +1,8 @@
 import { Server } from 'http';
 import { WebSocketServer, WebSocket, RawData } from 'ws';
 import { parse } from 'url';
-import { redis } from '../db/redis.js';
+import { createRedisClient, redis } from '../db/redis.js';
+import { logger } from '../utils/logger.js';
 
 
 const sessionChannels = new Map<string, Set<WebSocket>>();
@@ -123,10 +124,30 @@ export const setupWebSockets = (server: Server): { wss: WebSocketServer; close: 
     socket.close(1008, 'Unknown channel');
   });
 
-  const subscriber = redis.duplicate();
+  const subscriber = createRedisClient();
+
+  const logEvent = (event: string): void => {
+    logger.info('WebSocket Redis event', { event, status: subscriber.status });
+  };
+
+  subscriber.on('connect', () => logEvent('connect'));
+  subscriber.on('ready', () => logEvent('ready'));
+  subscriber.on('reconnecting', () => logEvent('reconnecting'));
+  subscriber.on('end', () => logEvent('end'));
+  subscriber.on('close', () => logEvent('close'));
+  subscriber.on('error', (error: Error) => {
+    logger.error('WebSocket Redis error', { message: error.message, stack: error.stack });
+  });
+
   subscriber.subscribe('status', 'session', 'notification');
   subscriber.on('message', (channel: string, message: string) => {
     const payload = JSON.parse(message);
+    logger.info('WebSocket dispatch', {
+      channel,
+      hasSessionId: Boolean(payload?.sessionId),
+      hasUserId: Boolean(payload?.userId),
+      type: payload?.type ?? null
+    });
     switch (channel) {
       case 'status':
         broadcast(statusClients, payload);
