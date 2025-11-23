@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { existsSync, cpSync, rmSync, mkdirSync } from 'node:fs';
+import { existsSync, cpSync, rmSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { config as loadEnv } from 'dotenv';
 
@@ -77,6 +77,44 @@ const mirrorBuildOutputToRoot = () => {
   console.log('[web:build] Mirrored apps/web/.next into repo-root .next for Vercel.');
 };
 
+const patchNftNodeModulePaths = () => {
+  const rootOutput = resolve(process.cwd(), '.next');
+  if (!existsSync(rootOutput)) {
+    return;
+  }
+
+  const nftFiles: string[] = [];
+  const walk = (dir: string) => {
+    const entries = readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const entryPath = resolve(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(entryPath);
+        continue;
+      }
+      if (entry.isFile() && entry.name.endsWith('.nft.json')) {
+        nftFiles.push(entryPath);
+      }
+    }
+  };
+
+  walk(rootOutput);
+
+  let patchedCount = 0;
+  for (const file of nftFiles) {
+    const original = readFileSync(file, 'utf8');
+    const updated = original.replaceAll('../../../node_modules/', '../node_modules/');
+    if (updated !== original) {
+      writeFileSync(file, updated, 'utf8');
+      patchedCount += 1;
+    }
+  }
+
+  if (patchedCount > 0) {
+    console.log(`[web:build] Patched node_modules paths in ${patchedCount} NFT manifest(s).`);
+  }
+};
+
 child.on('exit', (code, signal) => {
   if (signal) {
     process.exit(1);
@@ -88,6 +126,7 @@ child.on('exit', (code, signal) => {
       syncPublicAssets();
       mirrorPublicDirToRoot();
       mirrorBuildOutputToRoot();
+      patchNftNodeModulePaths();
     } catch (error) {
       console.error('[web:build] Failed to copy public assets', error);
       process.exit(1);

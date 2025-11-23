@@ -1,4 +1,4 @@
-import { Redis } from 'ioredis';
+import { Redis, RedisOptions } from 'ioredis';
 import { env } from '../config/env.js';
 
 class NoopRedis {
@@ -56,13 +56,32 @@ declare global {
 
 const globalRedis = globalThis as typeof globalThis & { __humanchatRedis__?: Redis };
 
-const createRedisClient = (): Redis => {
+export const createRedisClient = (): Redis => {
   if (!env.redisUrl) {
     console.warn('[Redis] REDIS_URL missing; disabling Redis features until Memorystore is configured.');
     return new NoopRedis() as unknown as Redis;
   }
 
-  const client = new Redis(env.redisUrl);
+  let redisOptions: RedisOptions | undefined;
+  if (env.redisUseTls) {
+    try {
+      const parsed = new URL(env.redisUrl);
+      redisOptions = {
+        tls: {
+          rejectUnauthorized: env.redisTlsRejectUnauthorized,
+          servername: parsed.hostname
+        }
+      };
+      console.info('[Redis] TLS enabled for Memorystore connection', {
+        host: parsed.hostname,
+        rejectUnauthorized: env.redisTlsRejectUnauthorized
+      });
+    } catch (error) {
+      console.warn('[Redis] Failed to parse REDIS_URL for TLS configuration, proceeding without TLS', error);
+    }
+  }
+
+  const client = redisOptions ? new Redis(env.redisUrl, redisOptions) : new Redis(env.redisUrl);
   client.on('error', (error: Error) => {
     console.error('[Redis] connection error', error);
   });

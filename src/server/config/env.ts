@@ -1,5 +1,12 @@
 import 'dotenv/config';
 
+const toBool = (value: string | undefined, defaultValue = false): boolean => {
+  if (value === undefined) {
+    return defaultValue;
+  }
+  return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase());
+};
+
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
   port: Number(process.env.PORT ?? 4000),
@@ -7,6 +14,8 @@ export const env = {
   appUrl: process.env.APP_URL ?? 'http://localhost:3000',
   databaseUrl: process.env.DATABASE_URL ?? 'postgresql://localhost:5432/humanchat',
   redisUrl: process.env.REDIS_URL,
+  redisUseTls: toBool(process.env.REDIS_TLS),
+  redisTlsRejectUnauthorized: toBool(process.env.REDIS_TLS_REJECT_UNAUTHORIZED, true),
   jwtSecret: process.env.JWT_SECRET ?? 'dev-secret-change-me',
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? '24h',
   firebaseProjectId: process.env.FIREBASE_PROJECT_ID,
