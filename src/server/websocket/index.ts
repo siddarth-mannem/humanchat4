@@ -2,6 +2,7 @@ import { Server } from 'http';
 import { WebSocketServer, WebSocket, RawData } from 'ws';
 import { parse } from 'url';
 import { redis } from '../db/redis.js';
+import { logger } from '../utils/logger.js';
 
 
 const sessionChannels = new Map<string, Set<WebSocket>>();
@@ -127,6 +128,12 @@ export const setupWebSockets = (server: Server): { wss: WebSocketServer; close: 
   subscriber.subscribe('status', 'session', 'notification');
   subscriber.on('message', (channel: string, message: string) => {
     const payload = JSON.parse(message);
+    logger.info('WebSocket dispatch', {
+      channel,
+      hasSessionId: Boolean(payload?.sessionId),
+      hasUserId: Boolean(payload?.userId),
+      type: payload?.type ?? null
+    });
     switch (channel) {
       case 'status':
         broadcast(statusClients, payload);
