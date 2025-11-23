@@ -170,6 +170,11 @@ export const sendToSam = async ({
       return buildFallbackResponse('Sam is reconnecting. Please try again.');
     }
 
+    logger.info('Sam response generated', { 
+      text: validated.data.text.substring(0, 100), 
+      actionCount: validated.data.actions?.length ?? 0 
+    });
+
     return {
       text: validated.data.text,
       actions: validated.data.actions ?? []

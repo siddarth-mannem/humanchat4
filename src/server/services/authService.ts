@@ -47,10 +47,11 @@ const ensureUserByEmail = async (email: string, nameHint?: string): Promise<User
     return existing.rows[0];
   }
   const fallbackName = nameHint ?? email.split('@')[0];
+  const userId = crypto.randomUUID();
   const insert = await query<User>(
-    `INSERT INTO users (name, email, role, conversation_type, is_online, has_active_session, managed, created_at, updated_at)
-     VALUES ($1,$2,'user','free',false,false,false,NOW(),NOW()) RETURNING *`,
-    [fallbackName, email]
+    `INSERT INTO users (id, name, email, role, is_online, has_active_session, managed, created_at, updated_at)
+     VALUES ($1,$2,$3,'user',false,false,false,NOW(),NOW()) RETURNING *`,
+    [userId, fallbackName, email]
   );
   return insert.rows[0];
 };

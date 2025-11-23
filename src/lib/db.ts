@@ -314,10 +314,17 @@ export const addMessage = async (
     };
 
     const id = await db.messages.add(record);
-    const updated = await db.conversations.update(conversationId, {
-      lastActivity: timestamp
-    });
-    ensureUpdated(updated, 'Conversation', conversationId);
+    
+    // Ensure conversation exists before updating
+    const existing = await db.conversations.get(conversationId);
+    if (existing) {
+      await db.conversations.update(conversationId, {
+        lastActivity: timestamp
+      });
+    } else {
+      console.warn(`[addMessage] Conversation ${conversationId} does not exist, skipping lastActivity update`);
+    }
+    
     return id;
   } catch (error) {
     throw toDbError('add message', error);

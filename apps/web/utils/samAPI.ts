@@ -53,8 +53,12 @@ export const sendSamMessage = async ({
   }
 
   const payload = await response.json();
-  if (payload?.text || payload?.actions) {
-    return payload as SamApiResponse;
+  
+  // Unwrap the { success: true, data: {...} } wrapper
+  const actualData = payload?.success ? payload.data : payload;
+  
+  if (actualData?.text || actualData?.actions) {
+    return actualData as SamApiResponse;
   }
-  return payload?.message ?? payload;
+  return actualData?.message ?? actualData;
 };

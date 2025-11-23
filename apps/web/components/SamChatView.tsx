@@ -49,6 +49,9 @@ const migrateSamConversation = async (oldId: string, nextId: string): Promise<vo
     return;
   }
 
+  console.log('[migrateSamConversation] Starting migration from', oldId, 'to', nextId);
+
+  // Create or update the new conversation
   const existing = await db.conversations.get(nextId);
   if (!existing) {
     const snapshot = (await db.conversations.get(oldId)) ?? SAM_FALLBACK_CONVERSATION;
@@ -57,9 +60,15 @@ const migrateSamConversation = async (oldId: string, nextId: string): Promise<vo
       conversationId: nextId,
       lastActivity: Date.now()
     });
+    console.log('[migrateSamConversation] Created new conversation:', nextId);
+  } else {
+    console.log('[migrateSamConversation] Conversation already exists:', nextId);
   }
 
+  // Migrate all messages to the new conversation
   const messages = await db.messages.where('conversationId').equals(oldId).toArray();
+  console.log('[migrateSamConversation] Migrating', messages.length, 'messages');
+  
   await Promise.all(
     messages.map((message) => {
       if (!message.id) return Promise.resolve();
@@ -67,9 +76,13 @@ const migrateSamConversation = async (oldId: string, nextId: string): Promise<vo
     })
   );
 
+  // Clean up old conversation if it's the default sam-concierge
   if (oldId === SAM_CONCIERGE_ID) {
     await db.conversations.delete(SAM_CONCIERGE_ID);
+    console.log('[migrateSamConversation] Deleted old sam-concierge conversation');
   }
+  
+  console.log('[migrateSamConversation] Migration complete');
 };
 
 export default function SamChatView({
@@ -128,6 +141,7 @@ export default function SamChatView({
   }, [conversation.participants]);
 
   const persistSamMessage = async (content: string, actions?: Action[]) => {
+    console.log('[SamChatView] Persisting Sam message:', { content, actions, activeConversationId });
     await addMessage(activeConversationId, {
       senderId: 'sam',
       content,
@@ -222,11 +236,26 @@ export default function SamChatView({
         }
       });
 
+      console.log('[SamChatView] Received response:', response);
+      console.log('[SamChatView] Response text:', response.text);
+      console.log('[SamChatView] Response actions:', response.actions);
+      
       if (response.conversationId && response.conversationId !== activeConversationId) {
+        console.log('[SamChatView] Migrating conversation from', activeConversationId, 'to', response.conversationId);
         await migrateSamConversation(activeConversationId, response.conversationId);
         setActiveConversationId(response.conversationId);
+        // Notify parent to switch to the new conversation so messages load correctly
+        onOpenConversation?.(response.conversationId);
       }
-      await persistSamMessage(response.text ?? 'Sam is thinking...', response.actions);
+      
+      console.log('[SamChatView] About to persist message with text:', response.text);
+      try {
+        await persistSamMessage(response.text ?? 'Sam is thinking...', response.actions);
+        console.log('[SamChatView] Message persisted successfully');
+      } catch (persistError) {
+        console.error('[SamChatView] Failed to persist message:', persistError);
+        throw persistError;
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to reach Sam right now.';
       setSendError(message);
@@ -272,6 +301,15 @@ export default function SamChatView({
           placeholder="Message Sam..."
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            // Send on Enter, new line on Shift+Enter
+            if (event.key === 'Enter' && !event.shiftKey) {
+              event.preventDefault();
+              if (draft.trim() && !isThinking) {
+                handleSubmit(event as any);
+              }
+            }
+          }}
           disabled={isThinking}
         />
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-end' }}>

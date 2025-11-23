@@ -202,9 +202,33 @@ export default function ActionRenderer({
     case 'follow_up_prompt': {
       const followUp = action as Extract<Action, { type: 'follow_up_prompt' }>;
       return (
-        <div className={styles.noticeBanner}>
-          <strong>Try asking Sam:</strong>
-          <p>{followUp.prompt}</p>
+        <div style={{ marginTop: '8px' }}>
+          <button
+            className={styles.secondaryButton}
+            type="button"
+            style={{
+              width: '100%',
+              textAlign: 'left',
+              padding: '10px 14px',
+              fontSize: '14px',
+              fontWeight: 'normal',
+              opacity: 0.9,
+              cursor: 'pointer'
+            }}
+            onClick={() => {
+              // Find the input element and set its value
+              const input = document.querySelector('textarea[placeholder*="Message"]') as HTMLTextAreaElement;
+              if (input) {
+                input.value = followUp.prompt;
+                input.focus();
+                // Trigger input event so React updates
+                const event = new Event('input', { bubbles: true });
+                input.dispatchEvent(event);
+              }
+            }}
+          >
+            💡 {followUp.prompt}
+          </button>
         </div>
       );
     }
