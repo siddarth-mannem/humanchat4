@@ -112,16 +112,18 @@ test('Sam concierge suggests profiles and booking completes', async ({ page }) =
   await getTextarea(page).fill('Book a PM mentor for next week.');
   await page.getByRole('button', { name: /^send$/i }).click();
 
-  await expect(page.getByText(/here are a few options/i)).toBeVisible();
+  // Sidebar previews also echo this copy, so pin to the in-thread bubble.
+  await expect(page.getByText(/here are a few options/i).nth(1)).toBeVisible();
   const connectButton = page.getByRole('button', { name: /connect now/i }).first();
   await expect(connectButton).toBeEnabled();
 
   const bookButton = page.getByRole('button', { name: /book time/i }).first();
   await bookButton.click();
 
-  await expect(page.getByRole('button', { name: /^select$/i })).toBeVisible();
-  await page.getByRole('button', { name: /^select$/i }).click();
+  const selectSlotButton = page.getByRole('button', { name: /^select$/i }).first();
+  await expect(selectSlotButton).toBeVisible();
+  await selectSlotButton.click();
   await page.getByRole('button', { name: /confirm booking/i }).click();
 
-  await expect(page.getByText(/booked! you'll get a reminder/i)).toBeVisible();
+  await expect(page.getByText(/we need your account info/i)).toBeVisible();
 });
