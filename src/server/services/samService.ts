@@ -43,6 +43,37 @@ export type SamPayload = z.infer<typeof SamPayloadSchema>;
 const REQUEST_REGEX = /(?:talk|speak|chat|connect|book)\s+(?:to|with)\s+([A-Za-z][A-Za-z\s.'-]{2,})/i;
 const SAM_CONCIERGE_ID = 'sam-concierge';
 
+const normalizeSamActions = (
+  actions: unknown
+): Parameters<typeof addConversationMessage>[4] => {
+  if (!actions) {
+    return undefined;
+  }
+
+  let candidate = actions;
+  if (typeof actions === 'string') {
+    try {
+      candidate = JSON.parse(actions);
+    } catch (error) {
+      logger.warn('Failed to parse stringified Sam actions; dropping payload', {
+        error,
+        sample: actions.slice(0, 200)
+      });
+      return undefined;
+    }
+  }
+
+  if (!Array.isArray(candidate)) {
+    logger.warn('Sam actions payload was not an array; dropping payload', {
+      typeof: typeof candidate
+    });
+    return undefined;
+  }
+
+  const cleaned = candidate.filter((entry) => entry && typeof entry === 'object');
+  return cleaned.length > 0 ? (cleaned as Parameters<typeof addConversationMessage>[4]) : undefined;
+};
+
 const shouldBootstrapSamConversation = (conversationId: string): boolean => {
   if (!conversationId) {
     return true;
@@ -133,7 +164,8 @@ export const handleSamChat = async (conversationId: string, userId: string, payl
       userContext: parsed.userContext
     }));
 
-  await persistMessage('sam', response.text, 'sam_response', response.actions);
+  const normalizedActions = normalizeSamActions(response.actions);
+  await persistMessage('sam', response.text, 'sam_response', normalizedActions);
 
   return {
     ...response,

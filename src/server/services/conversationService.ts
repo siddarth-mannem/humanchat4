@@ -3,6 +3,7 @@ import { validate as uuidValidate } from 'uuid';
 import { query } from '../db/postgres.js';
 import { ApiError } from '../errors/ApiError.js';
 import { Conversation } from '../types/index.js';
+import { logger } from '../utils/logger.js';
 
 export interface ConversationMessage {
   id: string;
@@ -52,15 +53,33 @@ export const addConversationMessage = async (
 
   const serializedActions = actions ? JSON.stringify(actions) : null;
 
-  const insert = await query<ConversationMessage>(
-    `INSERT INTO messages (conversation_id, sender_id, content, message_type, actions, created_at)
-     VALUES ($1,$2,$3,$4,$5::jsonb,NOW()) RETURNING *`,
-    [conversationId, senderId ?? null, content, type, serializedActions]
-  );
+  const runInsert = async (actionsJson: string | null) => {
+    const inserted = await query<ConversationMessage>(
+      `INSERT INTO messages (conversation_id, sender_id, content, message_type, actions, created_at)
+       VALUES ($1,$2,$3,$4,$5::jsonb,NOW()) RETURNING *`,
+      [conversationId, senderId ?? null, content, type, actionsJson]
+    );
+    await query('UPDATE conversations SET last_activity = NOW() WHERE id = $1', [conversationId]);
+    return inserted.rows[0];
+  };
 
-  await query('UPDATE conversations SET last_activity = NOW() WHERE id = $1', [conversationId]);
+  try {
+    return await runInsert(serializedActions);
+  } catch (error) {
+    const pgError = error as { code?: string };
+    const isJsonSyntaxError = pgError?.code === '22P02';
+    if (!isJsonSyntaxError || !serializedActions) {
+      throw error;
+    }
 
-  return insert.rows[0];
+    logger.warn('Dropping invalid Sam actions payload before persistence', {
+      conversationId,
+      type,
+      sample: serializedActions.slice(0, 200)
+    });
+
+    return runInsert(null);
+  }
 };
 
 export const findSamConversationForUser = async (userId: string): Promise<Conversation | null> => {
