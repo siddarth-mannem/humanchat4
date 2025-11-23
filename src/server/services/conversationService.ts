@@ -60,3 +60,36 @@ export const addConversationMessage = async (
 
   return insert.rows[0];
 };
+
+export const findSamConversationForUser = async (userId: string): Promise<Conversation | null> => {
+  if (!uuidValidate(userId)) {
+    throw new ApiError(400, 'INVALID_REQUEST', 'User id must be a UUID');
+  }
+
+  const result = await query<Conversation>(
+    `SELECT *
+     FROM conversations
+     WHERE type = 'sam' AND $1 = ANY(participants)
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [userId]
+  );
+
+  return result.rows[0] ?? null;
+};
+
+export const ensureSamConversation = async (userId: string): Promise<Conversation> => {
+  const existing = await findSamConversationForUser(userId);
+  if (existing) {
+    return existing;
+  }
+
+  const insert = await query<Conversation>(
+    `INSERT INTO conversations (type, participants, last_activity)
+     VALUES ('sam', ARRAY[$1::uuid], NOW())
+     RETURNING *`,
+    [userId]
+  );
+
+  return insert.rows[0];
+};

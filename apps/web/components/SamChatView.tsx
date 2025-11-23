@@ -9,6 +9,7 @@ import MessageBubble from './MessageBubble';
 import ActionRenderer from './ActionRenderer';
 import VirtualMessageList from './VirtualMessageList';
 import { notifyNewMessage } from '../utils/notifications';
+import { SAM_CONCIERGE_ID, SAM_FALLBACK_CONVERSATION } from '../hooks/useConversationData';
 
 interface SamChatViewProps {
   conversation: Conversation;
@@ -43,6 +44,34 @@ const normalizeProfile = (profile: ProfileSummary | SamShowcaseProfile, index: n
   };
 };
 
+const migrateSamConversation = async (oldId: string, nextId: string): Promise<void> => {
+  if (!nextId || oldId === nextId) {
+    return;
+  }
+
+  const existing = await db.conversations.get(nextId);
+  if (!existing) {
+    const snapshot = (await db.conversations.get(oldId)) ?? SAM_FALLBACK_CONVERSATION;
+    await db.conversations.put({
+      ...snapshot,
+      conversationId: nextId,
+      lastActivity: Date.now()
+    });
+  }
+
+  const messages = await db.messages.where('conversationId').equals(oldId).toArray();
+  await Promise.all(
+    messages.map((message) => {
+      if (!message.id) return Promise.resolve();
+      return db.messages.update(message.id, { conversationId: nextId });
+    })
+  );
+
+  if (oldId === SAM_CONCIERGE_ID) {
+    await db.conversations.delete(SAM_CONCIERGE_ID);
+  }
+};
+
 export default function SamChatView({
   conversation,
   messages,
@@ -54,7 +83,12 @@ export default function SamChatView({
   const [draft, setDraft] = useState('');
   const [isThinking, setThinking] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [activeConversationId, setActiveConversationId] = useState(conversation.conversationId);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    setActiveConversationId(conversation.conversationId);
+  }, [conversation.conversationId]);
 
   const orderedMessages = useMemo(() => [...messages].sort((a, b) => a.timestamp - b.timestamp), [messages]);
 
@@ -94,7 +128,7 @@ export default function SamChatView({
   }, [conversation.participants]);
 
   const persistSamMessage = async (content: string, actions?: Action[]) => {
-    await addMessage(conversation.conversationId, {
+    await addMessage(activeConversationId, {
       senderId: 'sam',
       content,
       type: 'sam_response',
@@ -116,7 +150,7 @@ export default function SamChatView({
   };
 
   const handleSlotSelection = async (slotId: string) => {
-    await addMessage(conversation.conversationId, {
+    await addMessage(activeConversationId, {
       senderId: localUserId,
       content: `Let's book slot ${slotId}.`,
       type: 'user_text',
@@ -166,7 +200,7 @@ export default function SamChatView({
               rate_per_minute: 0
             }));
 
-    await addMessage(conversation.conversationId, {
+    await addMessage(activeConversationId, {
       senderId: localUserId,
       content: text,
       type: 'user_text',
@@ -175,7 +209,7 @@ export default function SamChatView({
 
     try {
       const response = await sendSamMessage({
-        conversationId: conversation.conversationId,
+        conversationId: activeConversationId,
         message: text,
         conversationHistory: [...historyPayload, { role: 'user', content: text, timestamp: new Date().toISOString() }],
         userContext: {
@@ -187,6 +221,11 @@ export default function SamChatView({
           availableProfiles
         }
       });
+
+      if (response.conversationId && response.conversationId !== activeConversationId) {
+        await migrateSamConversation(activeConversationId, response.conversationId);
+        setActiveConversationId(response.conversationId);
+      }
       await persistSamMessage(response.text ?? 'Sam is thinking...', response.actions);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to reach Sam right now.';

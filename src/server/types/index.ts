@@ -168,3 +168,7 @@ export interface SamResponse {
   text: string;
   actions: SamAction[];
 }
+
+export interface SamChatResult extends SamResponse {
+  conversationId: string;
+}
