@@ -1,4 +1,7 @@
 import { defineConfig } from '@playwright/test';
+import { config as loadEnv } from 'dotenv';
+
+loadEnv({ path: '.env' });
 
 export default defineConfig({
   testDir: './e2e',

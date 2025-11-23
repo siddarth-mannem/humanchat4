@@ -3,11 +3,12 @@ import { validate as uuidValidate } from 'uuid';
 import { query } from '../db/postgres.js';
 import { ApiError } from '../errors/ApiError.js';
 import { Conversation } from '../types/index.js';
+import { logger } from '../utils/logger.js';
 
 export interface ConversationMessage {
   id: string;
   conversation_id: string;
-  sender_id: string;
+  sender_id: string | null;
   content: string;
   message_type: 'user_text' | 'sam_response' | 'system_notice';
   created_at: string;
@@ -39,7 +40,7 @@ export const getConversationMessages = async (conversationId: string): Promise<C
 
 export const addConversationMessage = async (
   conversationId: string,
-  senderId: string,
+  senderId: string | null,
   content: string,
   type: ConversationMessage['message_type'],
   actions?: ConversationMessage['actions']
@@ -50,13 +51,66 @@ export const addConversationMessage = async (
     throw new ApiError(404, 'NOT_FOUND', 'Conversation not found');
   }
 
-  const insert = await query<ConversationMessage>(
-    `INSERT INTO messages (conversation_id, sender_id, content, message_type, actions, created_at)
-     VALUES ($1,$2,$3,$4,$5,NOW()) RETURNING *`,
-    [conversationId, senderId, content, type, actions ?? null]
+  const serializedActions = actions ? JSON.stringify(actions) : null;
+
+  const runInsert = async (actionsJson: string | null) => {
+    const inserted = await query<ConversationMessage>(
+      `INSERT INTO messages (conversation_id, sender_id, content, message_type, actions, created_at)
+       VALUES ($1,$2,$3,$4,$5::jsonb,NOW()) RETURNING *`,
+      [conversationId, senderId ?? null, content, type, actionsJson]
+    );
+    await query('UPDATE conversations SET last_activity = NOW() WHERE id = $1', [conversationId]);
+    return inserted.rows[0];
+  };
+
+  try {
+    return await runInsert(serializedActions);
+  } catch (error) {
+    const pgError = error as { code?: string };
+    const isJsonSyntaxError = pgError?.code === '22P02';
+    if (!isJsonSyntaxError || !serializedActions) {
+      throw error;
+    }
+
+    logger.warn('Dropping invalid Sam actions payload before persistence', {
+      conversationId,
+      type,
+      sample: serializedActions.slice(0, 200)
+    });
+
+    return runInsert(null);
+  }
+};
+
+export const findSamConversationForUser = async (userId: string): Promise<Conversation | null> => {
+  if (!uuidValidate(userId)) {
+    throw new ApiError(400, 'INVALID_REQUEST', 'User id must be a UUID');
+  }
+
+  const result = await query<Conversation>(
+    `SELECT *
+     FROM conversations
+     WHERE type = 'sam' AND $1 = ANY(participants)
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [userId]
   );
 
-  await query('UPDATE conversations SET last_activity = NOW() WHERE id = $1', [conversationId]);
+  return result.rows[0] ?? null;
+};
+
+export const ensureSamConversation = async (userId: string): Promise<Conversation> => {
+  const existing = await findSamConversationForUser(userId);
+  if (existing) {
+    return existing;
+  }
+
+  const insert = await query<Conversation>(
+    `INSERT INTO conversations (type, participants, last_activity)
+     VALUES ('sam', ARRAY[$1::uuid], NOW())
+     RETURNING *`,
+    [userId]
+  );
 
   return insert.rows[0];
 };

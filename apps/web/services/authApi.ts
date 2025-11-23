@@ -28,3 +28,10 @@ export const fetchCurrentUser = async (): Promise<AuthUser | null> => {
   const payload = await handleResponse(result);
   return payload.user ?? null;
 };
+
+export const logout = async (): Promise<void> => {
+  await fetch(`${API_BASE_URL}/api/auth/logout`, {
+    method: 'POST',
+    credentials: 'include'
+  });
+};

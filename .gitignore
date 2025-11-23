@@ -14,6 +14,8 @@ coverage/
 .idea/
 apps/web/.next/
 .next/
+# Generated from apps/web/public during builds
+public/
 
 # Terraform local artifacts
 *.tfstate

@@ -1,12 +1,13 @@
 import { z } from 'zod';
 
-import { addConversationMessage } from './conversationService.js';
+import { addConversationMessage, ensureSamConversation } from './conversationService.js';
 import { sendToSam } from './samAPI.js';
-import { SamResponse } from '../types/index.js';
+import { SamResponse, SamChatResult } from '../types/index.js';
 import { searchUsers } from './userService.js';
 import { logRequestedPersonInterest } from './requestedPeopleService.js';
 import { ApiError } from '../errors/ApiError.js';
 import { logger } from '../utils/logger.js';
+import { validate as uuidValidate } from 'uuid';
 
 const SamPayloadSchema = z.object({
   message: z.string().min(1),
@@ -42,6 +43,47 @@ export type SamPayload = z.infer<typeof SamPayloadSchema>;
 const REQUEST_REGEX = /(?:talk|speak|chat|connect|book)\s+(?:to|with)\s+([A-Za-z][A-Za-z\s.'-]{2,})/i;
 const SAM_CONCIERGE_ID = 'sam-concierge';
 
+const normalizeSamActions = (
+  actions: unknown
+): Parameters<typeof addConversationMessage>[4] => {
+  if (!actions) {
+    return undefined;
+  }
+
+  let candidate = actions;
+  if (typeof actions === 'string') {
+    try {
+      candidate = JSON.parse(actions);
+    } catch (error) {
+      logger.warn('Failed to parse stringified Sam actions; dropping payload', {
+        error,
+        sample: actions.slice(0, 200)
+      });
+      return undefined;
+    }
+  }
+
+  if (!Array.isArray(candidate)) {
+    logger.warn('Sam actions payload was not an array; dropping payload', {
+      typeof: typeof candidate
+    });
+    return undefined;
+  }
+
+  const cleaned = candidate.filter((entry) => entry && typeof entry === 'object');
+  return cleaned.length > 0 ? (cleaned as Parameters<typeof addConversationMessage>[4]) : undefined;
+};
+
+const shouldBootstrapSamConversation = (conversationId: string): boolean => {
+  if (!conversationId) {
+    return true;
+  }
+  if (conversationId === SAM_CONCIERGE_ID) {
+    return true;
+  }
+  return !uuidValidate(conversationId);
+};
+
 const extractRequestedName = (message: string): string | null => {
   const match = message.match(REQUEST_REGEX);
   if (match?.[1]) {
@@ -76,8 +118,42 @@ const maybeHandleRequestedPerson = async (userId: string, message: string): Prom
   };
 };
 
-export const handleSamChat = async (conversationId: string, userId: string, payload: SamPayload): Promise<SamResponse> => {
+export const handleSamChat = async (conversationId: string, userId: string, payload: SamPayload): Promise<SamChatResult> => {
   const parsed = SamPayloadSchema.parse(payload);
+
+  let activeConversationId = conversationId;
+  if (shouldBootstrapSamConversation(activeConversationId)) {
+    const conversation = await ensureSamConversation(userId);
+    activeConversationId = conversation.id;
+  }
+
+  const persistMessage = async (
+    senderId: string,
+    content: string,
+    type: Parameters<typeof addConversationMessage>[3],
+    actions?: Parameters<typeof addConversationMessage>[4]
+  ) => {
+    const normalizedSenderId = uuidValidate(senderId) ? senderId : null;
+    try {
+      await addConversationMessage(activeConversationId, normalizedSenderId, content, type, actions);
+    } catch (error) {
+      const isExpectedMissingConversation =
+        error instanceof ApiError && (error.code === 'NOT_FOUND' || error.code === 'INVALID_REQUEST');
+      if (isExpectedMissingConversation) {
+        const conversation = await ensureSamConversation(userId);
+        activeConversationId = conversation.id;
+        await addConversationMessage(activeConversationId, normalizedSenderId, content, type, actions);
+        logger.info('Recreated missing Sam conversation for user', {
+          userId,
+          conversationId: activeConversationId
+        });
+      } else {
+        throw error;
+      }
+    }
+  };
+
+  await persistMessage(userId, parsed.message, 'user_text');
 
   const intercepted = await maybeHandleRequestedPerson(userId, parsed.message);
   const response =
@@ -88,20 +164,11 @@ export const handleSamChat = async (conversationId: string, userId: string, payl
       userContext: parsed.userContext
     }));
 
-  try {
-    await addConversationMessage(conversationId, 'sam', response.text, 'sam_response', response.actions);
-  } catch (error) {
-    const isSamConcierge = conversationId === SAM_CONCIERGE_ID;
-    const isExpectedMissingConversation =
-      error instanceof ApiError && (error.code === 'NOT_FOUND' || error.code === 'INVALID_REQUEST');
-    if (isSamConcierge && isExpectedMissingConversation) {
-      logger.warn('Sam conversation missing in DB, skipping persistence until bootstrap is wired.', {
-        userId,
-        conversationId
-      });
-    } else {
-      throw error;
-    }
-  }
-  return response;
+  const normalizedActions = normalizeSamActions(response.actions);
+  await persistMessage('sam', response.text, 'sam_response', normalizedActions);
+
+  return {
+    ...response,
+    conversationId: activeConversationId
+  };
 };

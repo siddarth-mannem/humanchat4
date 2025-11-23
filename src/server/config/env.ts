@@ -29,6 +29,6 @@ export const env = {
   smtpPass: process.env.SMTP_PASS,
   smtpFrom: process.env.SMTP_FROM ?? 'Sam <sam@humanchat.com>',
   geminiApiKey: process.env.GEMINI_API_KEY,
-  geminiModel: process.env.GEMINI_MODEL ?? 'gemini-1.5-flash',
+  geminiModel: process.env.GEMINI_MODEL ?? 'gemini-flash-latest',
   postgresCryptoKey: process.env.POSTGRES_CRYPTO_KEY ?? 'change-me'
 };
