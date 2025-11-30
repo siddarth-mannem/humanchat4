@@ -43,6 +43,8 @@ export default function VirtualMessageList({ messages, className, registerScroll
         {virtualizer.getVirtualItems().map((virtualRow) => (
           <div
             key={virtualRow.key}
+            ref={virtualizer.measureElement}
+            data-index={virtualRow.index}
             style={{
               position: 'absolute',
               top: 0,

@@ -86,6 +86,11 @@ export default function SamChatView({
   const [activeConversationId, setActiveConversationId] = useState(conversation.conversationId);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const keepInputFocused = useCallback(() => {
+    requestAnimationFrame(() => textareaRef.current?.focus({ preventScroll: true }));
+  }, []);
 
   useEffect(() => {
     setActiveConversationId(conversation.conversationId);
@@ -123,6 +128,10 @@ export default function SamChatView({
     if (!scrollRef.current) return;
     scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [orderedMessages.length]);
+
+  useEffect(() => {
+    keepInputFocused();
+  }, [keepInputFocused]);
 
   const localUserId = useMemo(() => {
     return conversation.participants.find((participant) => participant !== 'sam') ?? 'user_local';
@@ -179,10 +188,15 @@ export default function SamChatView({
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isThinking) {
+      keepInputFocused();
+      return;
+    }
     const text = draft.trim();
     if (!text) return;
 
     setDraft('');
+    keepInputFocused();
     setSendError(null);
     setThinking(true);
     let workingConversationId = activeConversationId;
@@ -278,6 +292,7 @@ export default function SamChatView({
       </VirtualMessageList>
       <form ref={formRef} className={styles.inputBar} onSubmit={handleSubmit}>
         <textarea
+          ref={textareaRef}
           placeholder="Message Sam..."
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
@@ -287,7 +302,6 @@ export default function SamChatView({
               formRef.current?.requestSubmit();
             }
           }}
-          disabled={isThinking}
         />
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-end' }}>
           {isThinking && (

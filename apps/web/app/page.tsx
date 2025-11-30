@@ -110,7 +110,7 @@ export default function LandingPage() {
               </a>
             </div>
             <Link href="/signup" className="rounded-full border border-white/30 px-4 py-1 text-white transition hover:border-white">
-              Sign up
+              Login/Signup
             </Link>
           </nav>
           <div className="flex flex-1 flex-col items-start justify-center gap-10 pb-10">
