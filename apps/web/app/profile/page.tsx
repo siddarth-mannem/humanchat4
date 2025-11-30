@@ -2,6 +2,7 @@
 
 import UserSettingsMenu from '../../components/UserSettingsMenu';
 import ProfilePanel from '../../components/ProfilePanel';
+import ProfileDetailsSummary from '../../components/ProfileDetailsSummary';
 
 export default function ProfilePage() {
   return (
@@ -14,7 +15,10 @@ export default function ProfilePage() {
         <UserSettingsMenu />
       </header>
       <div className="mx-auto w-full max-w-3xl px-4 py-8">
-        <ProfilePanel />
+        <div className="flex flex-col gap-8">
+          <ProfilePanel />
+          <ProfileDetailsSummary />
+        </div>
       </div>
     </main>
   );
