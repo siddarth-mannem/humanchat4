@@ -14,3 +14,17 @@ if (!firebaseConfig.apiKey || !firebaseConfig.authDomain || !firebaseConfig.proj
 const firebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
 export const firebaseAuth = getAuth(firebaseApp);
+
+/**
+ * Get the current user's Firebase ID token for API requests
+ */
+export const getAuthToken = async (): Promise<string | null> => {
+  const user = firebaseAuth.currentUser;
+  if (!user) return null;
+  try {
+    return await user.getIdToken();
+  } catch (error) {
+    console.error('Failed to get auth token:', error);
+    return null;
+  }
+};

@@ -6,6 +6,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc -p tsconfig.json && npm run web:build",
+    "build:dev": "npm run build && npm run dev",
     "test": "cross-env NODE_ENV=test jest --runInBand",
     "test:watch": "cross-env NODE_ENV=test jest --watch",
     "test:unit": "cross-env NODE_ENV=test jest --runInBand --selectProjects client",

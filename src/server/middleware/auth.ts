@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import { fail } from '../utils/apiResponse.js';
 import { extractAccessToken, verifyAccessToken } from '../services/tokenService.js';
+import { loginWithFirebaseToken } from '../services/authService.js';
 import { UserRole } from '../types/index.js';
 
 declare global {
@@ -16,7 +17,7 @@ declare global {
   }
 }
 
-export const authenticate = (req: Request, res: Response, next: NextFunction): void => {
+export const authenticate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const token = extractAccessToken(req);
   if (!token) {
     fail(res, 'UNAUTHORIZED', 'Missing access token', 401);
@@ -24,11 +25,19 @@ export const authenticate = (req: Request, res: Response, next: NextFunction): v
   }
 
   try {
+    // First try to verify as JWT access token
     const payload = verifyAccessToken(token);
     req.user = { id: payload.id, email: payload.email, role: payload.role };
     next();
-  } catch (error) {
-    fail(res, 'UNAUTHORIZED', 'Invalid or expired token', 401);
+  } catch (jwtError) {
+    // If JWT verification fails, try Firebase ID token
+    try {
+      const user = await loginWithFirebaseToken(token);
+      req.user = { id: user.id, email: user.email, role: user.role };
+      next();
+    } catch (firebaseError) {
+      fail(res, 'UNAUTHORIZED', 'Invalid or expired token', 401);
+    }
   }
 };
 
