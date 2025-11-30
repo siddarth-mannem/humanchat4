@@ -87,6 +87,8 @@ export default function SamChatView({
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const autoScrollRef = useRef(true);
+  const detachAutoScrollListener = useRef<(() => void) | null>(null);
 
   const keepInputFocused = useCallback(() => {
     requestAnimationFrame(() => textareaRef.current?.focus({ preventScroll: true }));
@@ -120,13 +122,41 @@ export default function SamChatView({
     (node: HTMLDivElement | null) => {
       scrollRef.current = node;
       registerScrollContainer(node);
+
+      detachAutoScrollListener.current?.();
+
+      if (node) {
+        const updateAutoStick = () => {
+          const distanceFromBottom = node.scrollHeight - node.scrollTop - node.clientHeight;
+          autoScrollRef.current = distanceFromBottom < 48;
+        };
+
+        node.addEventListener('scroll', updateAutoStick);
+        updateAutoStick();
+        detachAutoScrollListener.current = () => node.removeEventListener('scroll', updateAutoStick);
+      } else {
+        detachAutoScrollListener.current = null;
+        autoScrollRef.current = true;
+      }
     },
     [registerScrollContainer]
   );
 
   useEffect(() => {
-    if (!scrollRef.current) return;
-    scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+    if (!scrollRef.current || !autoScrollRef.current) {
+      return;
+    }
+
+    const node = scrollRef.current;
+    const scrollToBottom = () => node.scrollTo({ top: node.scrollHeight, behavior: 'smooth' });
+
+    const raf = requestAnimationFrame(scrollToBottom);
+    const timeout = window.setTimeout(scrollToBottom, 220);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(timeout);
+    };
   }, [orderedMessages.length]);
 
   useEffect(() => {
