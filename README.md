@@ -66,12 +66,23 @@ Launches the Next.js client on `http://localhost:3000`. It uses Dexie for offlin
 - `npm run test:api` – backend integration tests via Supertest
 - `npm run test:e2e` – Playwright chat flow
 
+## 🚀 Deployment
+
+Ready to deploy to production? Start here:
+
+→ **[DEPLOYMENT_INDEX.md](./DEPLOYMENT_INDEX.md)** - Choose your deployment path
+
+Quick links:
+- **[QUICKSTART_DEPLOY.md](./QUICKSTART_DEPLOY.md)** - Deploy in 5 steps (10 minutes)
+- **[DEPLOYMENT_CHECKLIST.md](./DEPLOYMENT_CHECKLIST.md)** - Interactive checklist
+- **[GOOGLE_CLOUD_RUN_DEPLOYMENT.md](./GOOGLE_CLOUD_RUN_DEPLOYMENT.md)** - Full technical guide
+
 ## Additional References
 - `ARCHITECTURE.md` – diagrams, data flow, state management
 - `API_DOCS.md` – REST endpoints, auth, and rate limits
 - `COMPONENTS.md` – component library reference
 - `DEPLOYMENT.md` – prod/staging deployment workflow
-- `infra/google-cloud/README.md` – Cloud Run build/deploy cookbook
+- `VERCEL_DEPLOYMENT.md` – frontend deployment to Vercel
 - `CONTRIBUTING.md` – coding standards and PR requirements
 - `docs/` – env setup, monitoring, backup, incident response
 

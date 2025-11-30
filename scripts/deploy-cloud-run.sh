@@ -1,85 +1,106 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+echo "🚀 HumanChat Backend Deployment to Google Cloud Run"
+echo "=================================================="
+
 if ! command -v gcloud >/dev/null 2>&1; then
-  echo "gcloud CLI missing. Install via https://cloud.google.com/sdk/docs/install" >&2
+  echo "❌ gcloud CLI missing. Install via https://cloud.google.com/sdk/docs/install" >&2
   exit 1
 fi
 
-PROJECT_ID=${PROJECT_ID:?"Set PROJECT_ID to the target Google Cloud project."}
-REGION=${REGION:-us-central1}
-SERVICE_NAME=${SERVICE_NAME:-humanchat-api}
-REPOSITORY=${REPOSITORY:-humanchat}
-IMAGE_TAG=${IMAGE_TAG:-$(git rev-parse --short HEAD)}
-PLATFORM=${PLATFORM:-managed}
+if ! command -v docker >/dev/null 2>&1; then
+  echo "❌ Docker not found. Install Docker Desktop." >&2
+  exit 1
+fi
+
+# Environment: 'production' or 'development'
+DEPLOY_ENV=${DEPLOY_ENV:-"production"}
+
+PROJECT_ID=${PROJECT_ID:-"loyal-env-475400-u0"}
+REGION=${REGION:-"us-central1"}
 PORT=${PORT:-8080}
 SKIP_BUILD=${SKIP_BUILD:-0}
-ENV_FILE=${ENV_FILE:-}
-VPC_CONNECTOR=${VPC_CONNECTOR:-}
-VPC_EGRESS=${VPC_EGRESS:-}
-MIN_INSTANCES=${MIN_INSTANCES:-}
-MAX_INSTANCES=${MAX_INSTANCES:-}
-CPU=${CPU:-}
-MEMORY=${MEMORY:-}
-CONCURRENCY=${CONCURRENCY:-}
-CLOUD_SQL_INSTANCES=${CLOUD_SQL_INSTANCES:-}
-SET_SECRETS=${SET_SECRETS:-}
+CLOUD_SQL_INSTANCES=${CLOUD_SQL_INSTANCES:-"loyal-env-475400-u0:us-central1:users"}
 
-IMAGE="us-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${SERVICE_NAME}:${IMAGE_TAG}"
+# Set environment-specific configurations
+if [[ "${DEPLOY_ENV}" == "development" ]]; then
+  SERVICE_NAME=${SERVICE_NAME:-"humanchat-api-dev"}
+  NODE_ENV="development"
+  MIN_INSTANCES=0
+  MAX_INSTANCES=3
+  MEMORY="512Mi"
+  SECRET_SUFFIX="_DEV"
+  CORS_ORIGIN="https://humanchat4.vercel.app"
+  API_BASE_URL="https://api-dev.humanchat.com"
+  APP_URL="https://humanchat4.vercel.app"
+else
+  SERVICE_NAME=${SERVICE_NAME:-"humanchat-api"}
+  NODE_ENV="production"
+  MIN_INSTANCES=0
+  MAX_INSTANCES=10
+  MEMORY="1Gi"
+  SECRET_SUFFIX=""
+  CORS_ORIGIN="https://humanchat.com"
+  API_BASE_URL="https://api.humanchat.com"
+  APP_URL="https://humanchat.com"
+fi
+
+IMAGE_TAG=${IMAGE_TAG:-$(git rev-parse --short HEAD 2>/dev/null || echo "latest")}
+
+# Use Container Registry (simpler than Artifact Registry)
+IMAGE="gcr.io/${PROJECT_ID}/${SERVICE_NAME}:${IMAGE_TAG}"
+
+echo ""
+echo "📋 Configuration:"
+echo "  Environment: ${DEPLOY_ENV}"
+echo "  Project ID: ${PROJECT_ID}"
+echo "  Region: ${REGION}"
+echo "  Service: ${SERVICE_NAME}"
+echo "  Node ENV: ${NODE_ENV}"
+echo "  Image: ${IMAGE}"
+echo ""
 
 if [[ "${SKIP_BUILD}" != "1" ]]; then
-  echo "Building and pushing image ${IMAGE}"
-  gcloud builds submit --project "${PROJECT_ID}" --tag "${IMAGE}" .
+  echo "🔨 Building Docker image for linux/amd64..."
+  docker build --platform linux/amd64 -t "${IMAGE}" .
+  
+  echo "📤 Pushing image to Container Registry..."
+  docker push "${IMAGE}"
+else
+  echo "⏭️  Skipping build (SKIP_BUILD=1)"
 fi
 
-deploy_cmd=(
-  gcloud run deploy "${SERVICE_NAME}"
-  --project "${PROJECT_ID}"
-  --region "${REGION}"
-  --platform "${PLATFORM}"
-  --image "${IMAGE}"
-  --allow-unauthenticated
-  --port "${PORT}"
-)
+echo ""
+echo "🚢 Deploying to Cloud Run (${DEPLOY_ENV})..."
+gcloud run deploy "${SERVICE_NAME}" \
+  --project "${PROJECT_ID}" \
+  --region "${REGION}" \
+  --image "${IMAGE}" \
+  --platform managed \
+  --port "${PORT}" \
+  --allow-unauthenticated \
+  --add-cloudsql-instances "${CLOUD_SQL_INSTANCES}" \
+  --set-secrets "DATABASE_URL=DATABASE_URL${SECRET_SUFFIX}:latest,FIREBASE_PROJECT_ID=FIREBASE_PROJECT_ID${SECRET_SUFFIX}:latest,FIREBASE_CLIENT_EMAIL=FIREBASE_CLIENT_EMAIL${SECRET_SUFFIX}:latest,FIREBASE_PRIVATE_KEY=FIREBASE_PRIVATE_KEY${SECRET_SUFFIX}:latest,GEMINI_API_KEY=GEMINI_API_KEY${SECRET_SUFFIX}:latest,REDIS_URL=REDIS_URL${SECRET_SUFFIX}:latest" \
+  --memory "${MEMORY}" \
+  --cpu 1 \
+  --min-instances "${MIN_INSTANCES}" \
+  --max-instances "${MAX_INSTANCES}" \
+  --timeout 300 \
+  --set-env-vars "NODE_ENV=${NODE_ENV},DEPLOY_ENV=${DEPLOY_ENV},CORS_ORIGIN=${CORS_ORIGIN},API_BASE_URL=${API_BASE_URL},APP_URL=${APP_URL}"
 
-if [[ -n "${ENV_FILE}" ]]; then
-  if [[ ! -f "${ENV_FILE}" ]]; then
-    echo "ENV_FILE ${ENV_FILE} not found" >&2
-    exit 1
-  fi
-  deploy_cmd+=(--env-vars-file "${ENV_FILE}")
-fi
+SERVICE_URL=$(gcloud run services describe "${SERVICE_NAME}" \
+  --project "${PROJECT_ID}" \
+  --region "${REGION}" \
+  --format='value(status.url)')
 
-if [[ -n "${CLOUD_SQL_INSTANCES}" ]]; then
-  deploy_cmd+=(--add-cloudsql-instances "${CLOUD_SQL_INSTANCES}")
-fi
-
-if [[ -n "${SET_SECRETS}" ]]; then
-  deploy_cmd+=(--set-secrets "${SET_SECRETS}")
-fi
-
-if [[ -n "${VPC_CONNECTOR}" ]]; then
-  deploy_cmd+=(--vpc-connector "${VPC_CONNECTOR}")
-  if [[ -n "${VPC_EGRESS}" ]]; then
-    deploy_cmd+=(--vpc-egress "${VPC_EGRESS}")
-  fi
-fi
-
-if [[ -n "${MIN_INSTANCES}" ]]; then
-  deploy_cmd+=(--min-instances "${MIN_INSTANCES}")
-fi
-if [[ -n "${MAX_INSTANCES}" ]]; then
-  deploy_cmd+=(--max-instances "${MAX_INSTANCES}")
-fi
-if [[ -n "${CPU}" ]]; then
-  deploy_cmd+=(--cpu "${CPU}")
-fi
-if [[ -n "${MEMORY}" ]]; then
-  deploy_cmd+=(--memory "${MEMORY}")
-fi
-if [[ -n "${CONCURRENCY}" ]]; then
-  deploy_cmd+=(--concurrency "${CONCURRENCY}")
-fi
-
-printf 'Deploying Cloud Run service %s\n' "${SERVICE_NAME}"
-"${deploy_cmd[@]}"
+echo ""
+echo "✅ Deployment complete!"
+echo ""
+echo "🌐 Service URL: ${SERVICE_URL}"
+echo "📊 View logs: gcloud logs read --project=${PROJECT_ID} --filter=\"resource.labels.service_name=${SERVICE_NAME}\""
+echo ""
+echo "Next steps:"
+echo "1. Test health endpoint: curl ${SERVICE_URL}/health"
+echo "2. Update Vercel with NEXT_PUBLIC_API_URL=${SERVICE_URL}"
+echo "3. Update Vercel with NEXT_PUBLIC_WS_URL=${SERVICE_URL}"

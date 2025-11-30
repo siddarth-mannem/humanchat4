@@ -24,3 +24,22 @@ coverage
 .env.local
 *.pem
 *.key
+
+# gcp backend rules
+node_modules
+npm-debug.log
+.env
+.env.*
+.git
+.gitignore
+README.md
+apps/web
+dist
+.next
+coverage
+*.md
+docs
+infra
+tests
+e2e
+scripts/*.sh

@@ -9,7 +9,7 @@ const toBool = (value: string | undefined, defaultValue = false): boolean => {
 
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
-  port: Number(process.env.PORT ?? 4000),
+  port: parseInt(process.env.PORT || process.env.API_PORT || '4000', 10),
   apiBaseUrl: process.env.API_BASE_URL ?? 'http://localhost:4000',
   appUrl: process.env.APP_URL ?? 'http://localhost:3000',
   databaseUrl: process.env.DATABASE_URL ?? 'postgresql://localhost:5432/humanchat',
