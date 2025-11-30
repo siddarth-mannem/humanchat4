@@ -6,7 +6,7 @@ import ConversationView from '../../components/ConversationView';
 import MobileBottomNav, { type MobileNavRoute } from '../../components/MobileBottomNav';
 import DiscoverPanel from '../../components/DiscoverPanel';
 import ProfilePanel from '../../components/ProfilePanel';
-import LogoutButton from '../../components/LogoutButton';
+import UserSettingsMenu from '../../components/UserSettingsMenu';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { useConversationData } from '../../hooks/useConversationData';
 
@@ -79,7 +79,7 @@ export default function ChatPage() {
           </button>
         )}
         <div className="ml-auto">
-          <LogoutButton />
+          <UserSettingsMenu />
         </div>
       </header>
 

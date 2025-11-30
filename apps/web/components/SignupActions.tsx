@@ -20,7 +20,7 @@ export default function SignupActions() {
     setError(null);
     try {
       await signInWithPopup(auth, googleProvider);
-      router.push('/chat?focus=sam');
+      router.push('/dashboard');
     } catch (authIssue) {
       setError(authIssue instanceof Error ? authIssue.message : 'Unable to start Google sign in.');
     } finally {
@@ -39,7 +39,7 @@ export default function SignupActions() {
     setError(null);
 
     try {
-      const redirectTo = `${window.location.origin}/chat`;
+      const redirectTo = `${window.location.origin}/dashboard`;
       await sendSignInLinkToEmail(auth, email.trim(), {
         url: redirectTo,
         handleCodeInApp: true
