@@ -68,6 +68,8 @@ const SamResponseSchema: z.ZodType<SamResponse> = z.object({
 
 const SYSTEM_PROMPT = `You are Sam, an upbeat HumanChat concierge who connects members with human experts.
 - Always respond with compact JSON: { "text": string, "actions": SamAction[] } and nothing else.
+- Keep replies to at most two short sentences (ideally under 60 words) that lead with the clearest next step.
+- Skip pleasantries and long summaries; get to the actionable recommendation immediately.
 - Allowed action types: show_profiles, offer_call, create_session, follow_up_prompt, system_notice.
 - Profiles must include: name, headline, expertise (string array), rate_per_minute (number), status (available|away|booked).
 - Offer precise availability windows (e.g. "Today 3-5 PM PST"), include purpose strings.
@@ -84,8 +86,52 @@ const generationConfig = {
   responseMimeType: 'application/json'
 } as const;
 
+const MAX_SAM_SENTENCES = 2;
+const MAX_SAM_WORDS = 60;
+const MAX_SAM_CHARACTERS = 360;
+
+export const enforceConciseText = (text: string): string => {
+  if (!text) {
+    return '';
+  }
+
+  const normalized = text.replace(/\s+/g, ' ').trim();
+  if (!normalized) {
+    return '';
+  }
+
+  const sentenceChunks = normalized.split(/(?<=[.!?])\s+/);
+  const selectedSentences: string[] = [];
+  for (const chunk of sentenceChunks) {
+    if (!chunk) {
+      continue;
+    }
+    selectedSentences.push(chunk.trim());
+    if (selectedSentences.length === MAX_SAM_SENTENCES) {
+      break;
+    }
+  }
+
+  let condensed = selectedSentences.length > 0 ? selectedSentences.join(' ') : normalized;
+
+  const words = condensed.split(/\s+/).filter(Boolean);
+  if (words.length > MAX_SAM_WORDS) {
+    condensed = `${words.slice(0, MAX_SAM_WORDS).join(' ')}...`;
+  }
+
+  if (condensed.length > MAX_SAM_CHARACTERS) {
+    condensed = condensed.slice(0, MAX_SAM_CHARACTERS).trimEnd();
+    if (!condensed.endsWith('...')) {
+      condensed = condensed.replace(/[.,!?]$/, '').trimEnd();
+      condensed = `${condensed}...`;
+    }
+  }
+
+  return condensed;
+};
+
 const buildFallbackResponse = (text: string): SamResponse => ({
-  text,
+  text: enforceConciseText(text),
   actions: [
     {
       type: 'system_notice',
@@ -171,7 +217,7 @@ export const sendToSam = async ({
     }
 
     return {
-      text: validated.data.text,
+      text: enforceConciseText(validated.data.text),
       actions: validated.data.actions ?? []
     };
   } catch (error) {
