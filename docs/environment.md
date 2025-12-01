@@ -40,7 +40,7 @@ Use this guide to configure production, staging, and local environments for Huma
 6. Rotate secrets quarterly or immediately after an incident; update IaC variable files and provider dashboards.
 
 ### Cloud SQL + Secret Manager
-1. Create the Cloud SQL instance (e.g., `loyal-env-475400-u0:us-central1:users`) and confirm the target database (default `postgres`).
+1. Create the Cloud SQL instance (e.g., `YOUR_GCP_PROJECT_ID:us-central1:users`) and confirm the target database (default `postgres`).
 2. Reset or create a SQL user password, then store it in Secret Manager (`cloudsql-db-password`).
 3. Create the connection-string secret:
 	- `postgresql://postgres:<password>@/postgres?host=/cloudsql/<instance>` → `cloudsql-database-url`.
