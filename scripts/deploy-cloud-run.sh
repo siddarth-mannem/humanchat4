@@ -31,7 +31,7 @@ if [[ "${DEPLOY_ENV}" == "development" ]]; then
   MAX_INSTANCES=3
   MEMORY="512Mi"
   SECRET_SUFFIX="_DEV"
-  CORS_ORIGIN="http://localhost:3000,https://humanchat4.vercel.app"
+  CORS_ORIGIN="http://localhost:3000,https://humanchat4.vercel.app,https://humanchat4-git-develop-sids-projects-2126eccc.vercel.app,https://humanchat4-j72fdss8d-sids-projects-2126eccc.vercel.app"
   API_BASE_URL="https://humanchat-api-dev-37305898543.us-central1.run.app"
   APP_URL="https://humanchat4.vercel.app"
 else
