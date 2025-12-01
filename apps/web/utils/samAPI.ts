@@ -36,12 +36,22 @@ export const sendSamMessage = async ({
   userContext
 }: SendSamMessageInput): Promise<SamApiResponse> => {
   const token = await getAuthToken();
+  
+  // Debug logging
+  console.log('[samAPI] Auth token status:', token ? 'Token present' : 'No token');
+  if (!token) {
+    console.error('[samAPI] No Firebase token available. User may not be logged in.');
+  }
+  
   const headers: HeadersInit = {
     'Content-Type': 'application/json'
   };
   
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
+    console.log('[samAPI] Authorization header set');
+  } else {
+    console.warn('[samAPI] No Authorization header - request will fail with 401');
   }
 
   const response = await fetch(`${API_BASE_URL}/api/sam/chat?conversationId=${encodeURIComponent(conversationId)}`, {

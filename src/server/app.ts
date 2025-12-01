@@ -27,9 +27,21 @@ const swaggerDocument = YAML.load(openapiPath);
 app.set('trust proxy', 1);
 
 app.use(helmet());
+
+// Support multiple CORS origins
+const allowedOrigins = env.corsOrigin.split(',').map(origin => origin.trim());
 app.use(
   cors({
-    origin: env.corsOrigin,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true
   })
 );

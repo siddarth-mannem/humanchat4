@@ -31,8 +31,8 @@ if [[ "${DEPLOY_ENV}" == "development" ]]; then
   MAX_INSTANCES=3
   MEMORY="512Mi"
   SECRET_SUFFIX="_DEV"
-  CORS_ORIGIN="https://humanchat4.vercel.app"
-  API_BASE_URL="https://api-dev.humanchat.com"
+  CORS_ORIGIN="http://localhost:3000,https://humanchat4.vercel.app"
+  API_BASE_URL="https://humanchat-api-dev-37305898543.us-central1.run.app"
   APP_URL="https://humanchat4.vercel.app"
 else
   SERVICE_NAME=${SERVICE_NAME:-"humanchat-api"}
@@ -81,13 +81,13 @@ gcloud run deploy "${SERVICE_NAME}" \
   --port "${PORT}" \
   --allow-unauthenticated \
   --add-cloudsql-instances "${CLOUD_SQL_INSTANCES}" \
-  --set-secrets "DATABASE_URL=DATABASE_URL${SECRET_SUFFIX}:latest,FIREBASE_PROJECT_ID=FIREBASE_PROJECT_ID${SECRET_SUFFIX}:latest,FIREBASE_CLIENT_EMAIL=FIREBASE_CLIENT_EMAIL${SECRET_SUFFIX}:latest,FIREBASE_PRIVATE_KEY=FIREBASE_PRIVATE_KEY${SECRET_SUFFIX}:latest,GEMINI_API_KEY=GEMINI_API_KEY${SECRET_SUFFIX}:latest,REDIS_URL=REDIS_URL${SECRET_SUFFIX}:latest" \
+  --set-secrets "DATABASE_URL=DATABASE_URL${SECRET_SUFFIX}:latest,FIREBASE_PROJECT_ID=FIREBASE_PROJECT_ID${SECRET_SUFFIX}:latest,FIREBASE_CLIENT_EMAIL=FIREBASE_CLIENT_EMAIL${SECRET_SUFFIX}:latest,FIREBASE_PRIVATE_KEY=FIREBASE_PRIVATE_KEY${SECRET_SUFFIX}:latest,GEMINI_API_KEY=GEMINI_API_KEY${SECRET_SUFFIX}:latest,REDIS_URL=REDIS_URL${SECRET_SUFFIX}:latest,CORTEX_API_TOKEN=CORTEX_API_TOKEN${SECRET_SUFFIX}:latest" \
   --memory "${MEMORY}" \
   --cpu 1 \
   --min-instances "${MIN_INSTANCES}" \
   --max-instances "${MAX_INSTANCES}" \
   --timeout 300 \
-  --set-env-vars "NODE_ENV=${NODE_ENV},DEPLOY_ENV=${DEPLOY_ENV},CORS_ORIGIN=${CORS_ORIGIN},API_BASE_URL=${API_BASE_URL},APP_URL=${APP_URL}"
+  --set-env-vars "NODE_ENV=${NODE_ENV},DEPLOY_ENV=${DEPLOY_ENV},CORS_ORIGIN='${CORS_ORIGIN}',API_BASE_URL=${API_BASE_URL},APP_URL=${APP_URL}"
 
 SERVICE_URL=$(gcloud run services describe "${SERVICE_NAME}" \
   --project "${PROJECT_ID}" \
