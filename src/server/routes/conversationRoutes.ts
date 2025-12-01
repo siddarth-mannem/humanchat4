@@ -8,6 +8,7 @@ import {
   getConversationMessages,
   addConversationMessage
 } from '../services/conversationService.js';
+import { initiateInstantConnection } from '../services/connectionService.js';
 
 const router = Router();
 
@@ -15,6 +16,20 @@ router.get('/', authenticate, authenticatedLimiter, async (req, res, next) => {
   try {
     const conversations = await listConversations(req.user!.id);
     success(res, { conversations });
+  } catch (error) {
+    next(error);
+  }
+});
+
+const connectSchema = z.object({
+  target_user_id: z.string().uuid()
+});
+
+router.post('/connect', authenticate, authenticatedLimiter, async (req, res, next) => {
+  try {
+    const payload = connectSchema.parse(req.body ?? {});
+    const result = await initiateInstantConnection(req.user!.id, payload.target_user_id);
+    success(res, result, 201);
   } catch (error) {
     next(error);
   }

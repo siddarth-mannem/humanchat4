@@ -4,6 +4,13 @@ import clsx from 'clsx';
 import type { UseProfileDetailsResult } from '../hooks/useProfileDetails';
 import type { ConversationCategory } from '../services/profileApi';
 
+const HUMAN_FALLBACK = 'Human';
+
+const ensureHumanCopy = (value?: string | null): string => {
+  const trimmed = value?.trim();
+  return trimmed && trimmed.length > 0 ? trimmed : HUMAN_FALLBACK;
+};
+
 const conversationCopy: Record<ConversationCategory, { label: string; helper: string }> = {
   free: { label: 'Free', helper: 'No charge · tips optional' },
   paid: { label: 'Paid', helper: 'Charge per minute for instant connects' },
@@ -27,6 +34,8 @@ interface ProfileDetailsSummaryProps {
 
 export default function ProfileDetailsSummary({ profileState }: ProfileDetailsSummaryProps) {
   const { profile, loading, error, refresh } = profileState;
+  const headlineCopy = profile ? ensureHumanCopy(profile.headline) : HUMAN_FALLBACK;
+  const bioCopy = profile ? ensureHumanCopy(profile.bio) : HUMAN_FALLBACK;
 
   const renderStatus = () => {
     if (!profile) return null;
@@ -72,8 +81,8 @@ export default function ProfileDetailsSummary({ profileState }: ProfileDetailsSu
               <p className="text-xl font-semibold text-white">{profile.name}</p>
               <p className="text-sm text-white/60">{profile.email}</p>
             </div>
-            {profile.headline && <p className="mt-4 text-base text-white/80">{profile.headline}</p>}
-            {profile.bio && <p className="mt-2 text-sm leading-relaxed text-white/70">{profile.bio}</p>}
+            <p className="mt-4 text-base text-white/80">{headlineCopy}</p>
+            <p className="mt-2 text-sm leading-relaxed text-white/70">{bioCopy}</p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">

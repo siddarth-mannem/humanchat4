@@ -4,13 +4,28 @@ import { ApiError } from '../errors/ApiError.js';
 import { User } from '../types/index.js';
 import type { PresenceState } from './presenceService.js';
 
+const HUMAN_FALLBACK = 'Human';
+
+const normalizeProfileCopy = (value?: string | null): string => {
+  const trimmed = value?.trim();
+  return trimmed && trimmed.length > 0 ? trimmed : HUMAN_FALLBACK;
+};
+
+const applyHumanDefaults = <T extends Pick<User, 'headline' | 'bio'>>(record: T): T => {
+  return {
+    ...record,
+    headline: normalizeProfileCopy(record.headline),
+    bio: normalizeProfileCopy(record.bio)
+  };
+};
+
 export const getUserById = async (id: string): Promise<User> => {
   const result = await query<User>('SELECT * FROM users WHERE id = $1', [id]);
   const user = result.rows[0];
   if (!user) {
     throw new ApiError(404, 'NOT_FOUND', 'User not found');
   }
-  return user;
+  return applyHumanDefaults(user);
 };
 
 export const updateUserProfile = async (id: string, updates: Partial<User>): Promise<User> => {
@@ -42,7 +57,7 @@ export const searchUsers = async (q: string, online?: boolean): Promise<User[]> 
 
   const sql = `SELECT * FROM users ${where} ORDER BY is_online DESC, name ASC LIMIT 50`;
   const result = await query<User>(sql, params);
-  return result.rows;
+  return result.rows.map(applyHumanDefaults);
 };
 
 export const getUserAvailability = async (userId: string): Promise<{ slots: Array<{ start: string; end: string }> }> => {

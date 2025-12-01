@@ -10,8 +10,9 @@ interface ActionRendererProps {
   onOpenConversation?: (conversationId: string) => void;
   onCreateSession?: (conversation: Conversation, session: Session) => void;
   onSelectSlot?: (slotId: string) => void;
-  onConnectNow?: (userId: string) => void;
+  onConnectNow?: (profile: ProfileSummary) => void;
   onBookTime?: (profile: ProfileSummary) => void;
+  connectingProfileId?: string | null;
 }
 
 const formatRate = (rate?: number) => (rate ? `$${rate.toFixed(2)}/min` : '');
@@ -94,7 +95,8 @@ export default function ActionRenderer({
   onCreateSession,
   onSelectSlot,
   onConnectNow,
-  onBookTime
+  onBookTime,
+  connectingProfileId
 }: ActionRendererProps) {
   if (!action) return null;
 
@@ -108,7 +110,13 @@ export default function ActionRenderer({
         return (
           <div className={styles.profileScroller}>
             {legacyProfiles.map((profile) => (
-              <ProfileCard key={profile.userId} profile={profile} onConnectNow={onConnectNow} onBookTime={onBookTime} />
+              <ProfileCard
+                key={profile.userId}
+                profile={profile}
+                onConnectNow={onConnectNow}
+                onBookTime={onBookTime}
+                isConnecting={connectingProfileId === profile.userId}
+              />
             ))}
           </div>
         );

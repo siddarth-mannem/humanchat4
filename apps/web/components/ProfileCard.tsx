@@ -7,18 +7,34 @@ import styles from './ProfileCard.module.css';
 import StatusBadge from './StatusBadge';
 import RateDisplay from './RateDisplay';
 
+const HUMAN_FALLBACK = 'Human';
+
+const ensureHumanCopy = (value?: string | null): string => {
+  const trimmed = value?.trim();
+  return trimmed && trimmed.length > 0 ? trimmed : HUMAN_FALLBACK;
+};
+
+const hasCustomCopy = (value?: string | null): boolean => {
+  const trimmed = value?.trim();
+  return Boolean(trimmed && trimmed.length > 0);
+};
+
 interface ProfileCardProps {
   profile: ProfileSummary;
-  onConnectNow?: (userId: string) => void;
+  onConnectNow?: (profile: ProfileSummary) => void;
   onBookTime?: (profile: ProfileSummary) => void;
+  isConnecting?: boolean;
 }
 
-export default function ProfileCard({ profile, onConnectNow, onBookTime }: ProfileCardProps) {
+export default function ProfileCard({ profile, onConnectNow, onBookTime, isConnecting }: ProfileCardProps) {
   const [expanded, setExpanded] = useState(false);
 
   const canConnect = Boolean(profile.isOnline && !profile.hasActiveSession);
   const tooltip = profile.hasActiveSession ? 'Currently in a call' : undefined;
   const managedConfidential = Boolean(profile.managed && profile.confidentialRate);
+  const headlineCopy = ensureHumanCopy(profile.headline);
+  const bioCopy = ensureHumanCopy(profile.bio);
+  const hasCustomBio = hasCustomCopy(profile.bio);
   const contributionBlurb = useMemo(() => {
     if (managedConfidential) {
       return `${profile.name ?? 'This talent'} works through a representative. Send a request and their team will coordinate the details.`;
@@ -49,7 +65,7 @@ export default function ProfileCard({ profile, onConnectNow, onBookTime }: Profi
         />
         <div className={styles.nameBlock}>
           <strong className={styles.name}>{profile.name}</strong>
-          {profile.headline && <p className={styles.headline}>{profile.headline}</p>}
+          <p className={styles.headline}>{headlineCopy}</p>
         </div>
       </div>
 
@@ -59,10 +75,10 @@ export default function ProfileCard({ profile, onConnectNow, onBookTime }: Profi
         presenceState={profile.presenceState}
       />
 
-      {profile.bio && (
+      {bioCopy && (
         <div className={clsx(styles.bio, !expanded && styles.bioCollapsed)}>
-          {profile.bio}
-          {!expanded && (
+          {bioCopy}
+          {!expanded && hasCustomBio && (
             <button className={styles.readMore} type="button" onClick={() => setExpanded(true)}>
               Read more
             </button>
@@ -89,10 +105,10 @@ export default function ProfileCard({ profile, onConnectNow, onBookTime }: Profi
             <button
               className={styles.primaryButton}
               type="button"
-              disabled={!canConnect}
-              onClick={() => canConnect && onConnectNow?.(profile.userId)}
+              disabled={!canConnect || Boolean(isConnecting)}
+              onClick={() => canConnect && !isConnecting && onConnectNow?.(profile)}
             >
-              Connect Now
+              {isConnecting ? 'Connecting…' : 'Connect Now'}
             </button>
             {tooltip && <span className={styles.tooltipText}>{tooltip}</span>}
           </div>

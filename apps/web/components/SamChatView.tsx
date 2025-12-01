@@ -16,8 +16,9 @@ interface SamChatViewProps {
   messages: Message[];
   registerScrollContainer: (node: HTMLDivElement | null) => void;
   onOpenConversation?: (conversationId: string) => void;
-  onConnectNow?: (userId: string) => void;
+  onConnectNow?: (profile: ProfileSummary) => void;
   onBookTime?: (profile: ProfileSummary) => void;
+  connectingProfileId?: string | null;
 }
 
 const isSamMessage = (message: Message) => message.type === 'sam_response' || message.senderId === 'sam';
@@ -78,7 +79,8 @@ export default function SamChatView({
   registerScrollContainer,
   onOpenConversation,
   onConnectNow,
-  onBookTime
+  onBookTime,
+  connectingProfileId
 }: SamChatViewProps) {
   const [draft, setDraft] = useState('');
   const [isThinking, setThinking] = useState(false);
@@ -312,6 +314,7 @@ export default function SamChatView({
                       onSelectSlot={handleSlotSelection}
                       onConnectNow={onConnectNow}
                       onBookTime={onBookTime}
+                        connectingProfileId={connectingProfileId}
                     />
                   ))}
                 </div>
