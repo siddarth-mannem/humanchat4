@@ -24,6 +24,7 @@ import {
 } from '../services/tokenService.js';
 import { env } from '../config/env.js';
 import { ApiError } from '../errors/ApiError.js';
+import { updateUserPresence } from '../services/presenceService.js';
 
 const router = Router();
 
@@ -153,6 +154,7 @@ router.post('/refresh', async (req, res, next) => {
 
 router.post('/logout', authenticate, async (req, res, next) => {
   try {
+    await updateUserPresence(req.user!.id, 'offline').catch(() => undefined);
     await clearAuthCookies(res, req.cookies?.hc_refresh);
     success(res, { message: 'Logged out' });
   } catch (error) {

@@ -99,6 +99,11 @@
   color: #fbbf24;
 }
 
+.statusIdle {
+  background: rgba(251, 146, 60, 0.2);
+  color: #fb923c;
+}
+
 .statusOffline {
   background: rgba(148, 163, 184, 0.2);
   color: rgba(148, 163, 184, 0.9);

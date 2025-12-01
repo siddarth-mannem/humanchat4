@@ -7,6 +7,7 @@ import { env } from '../config/env.js';
 import { ApiError } from '../errors/ApiError.js';
 import { User } from '../types/index.js';
 import { firebaseAuth } from './firebaseAdmin.js';
+import { updateUserPresence } from './presenceService.js';
 
 interface RegisterInput {
   name: string;
@@ -47,9 +48,9 @@ const ensureUserByEmail = async (email: string, nameHint?: string): Promise<User
     return existing.rows[0];
   }
   const fallbackName = nameHint ?? email.split('@')[0];
-  const insert = await query<User>(
-    `INSERT INTO users (name, email, role, conversation_type, is_online, has_active_session, managed, display_mode, created_at, updated_at)
-     VALUES ($1,$2,'user','free',true,false,false,'normal',NOW(),NOW()) RETURNING *`,
+    const insert = await query<User>(
+      `INSERT INTO users (name, email, role, conversation_type, is_online, has_active_session, managed, display_mode, presence_state, created_at, updated_at)
+       VALUES ($1,$2,'user','free',true,false,false,'normal','active',NOW(),NOW()) RETURNING *`,
     [fallbackName, email]
   );
   return insert.rows[0];
@@ -63,10 +64,10 @@ export const registerUser = async ({ name, email, password }: RegisterInput): Pr
 
   const passwordHash = await bcrypt.hash(password, 10);
 
-  const insert = await query<User>(
-    `INSERT INTO users (name, email, password_hash, role, conversation_type, is_online, has_active_session, managed, display_mode, created_at, updated_at)
-     VALUES ($1, $2, $3, 'user', 'free', true, false, false, 'normal', NOW(), NOW())
-     RETURNING *`,
+    const insert = await query<User>(
+      `INSERT INTO users (name, email, password_hash, role, conversation_type, is_online, has_active_session, managed, display_mode, presence_state, created_at, updated_at)
+       VALUES ($1, $2, $3, 'user', 'free', true, false, false, 'normal', 'active', NOW(), NOW())
+       RETURNING *`,
     [name, email, passwordHash]
   );
 
@@ -85,7 +86,7 @@ export const loginUser = async (email: string, password: string): Promise<User> 
     throw new ApiError(401, 'UNAUTHORIZED', 'Invalid credentials');
   }
 
-  return user;
+  return updateUserPresence(user.id, 'active');
 };
 
 export const requestMagicLink = async (email: string, rememberMe: boolean): Promise<void> => {
@@ -127,7 +128,8 @@ export const verifyMagicLink = async (token: string): Promise<{ user: User; reme
   if (!user.rows[0]) {
     throw new ApiError(404, 'NOT_FOUND', 'User not found');
   }
-  return { user: user.rows[0], rememberMe: link.remember_me };
+  const refreshed = await updateUserPresence(user.rows[0].id, 'active');
+  return { user: refreshed, rememberMe: link.remember_me };
 };
 
 export const loginWithFirebaseToken = async (idToken: string): Promise<User> => {
@@ -148,9 +150,9 @@ export const loginWithFirebaseToken = async (idToken: string): Promise<User> => 
   const user = await ensureUserByEmail(decoded.email, nameHint);
   if (avatarUrl && avatarUrl !== user.avatar_url) {
     await query('UPDATE users SET avatar_url = $2, updated_at = NOW() WHERE id = $1', [user.id, avatarUrl]);
-    return { ...user, avatar_url: avatarUrl };
+    return updateUserPresence(user.id, 'active');
   }
-  return user;
+  return updateUserPresence(user.id, 'active');
 };
 
 export const buildGoogleAuthUrl = (state: Record<string, unknown> = {}): string => {
@@ -186,7 +188,7 @@ export const handleGoogleCallback = async (code: string): Promise<User> => {
   }
   const user = await ensureUserByEmail(payload.email, payload.name ?? undefined);
   await query('UPDATE users SET avatar_url = $2, updated_at = NOW() WHERE id = $1', [user.id, payload.picture ?? null]);
-  return { ...user, avatar_url: payload.picture ?? user.avatar_url } as User;
+  return updateUserPresence(user.id, 'active');
 };
 
 export const parseGoogleState = (state?: string | null): { rememberMe?: boolean; redirect?: string } => {

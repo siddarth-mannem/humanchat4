@@ -53,7 +53,11 @@ export default function ProfileCard({ profile, onConnectNow, onBookTime }: Profi
         </div>
       </div>
 
-      <StatusBadge isOnline={profile.isOnline} hasActiveSession={profile.hasActiveSession} />
+      <StatusBadge
+        isOnline={profile.isOnline}
+        hasActiveSession={profile.hasActiveSession}
+        presenceState={profile.presenceState}
+      />
 
       {profile.bio && (
         <div className={clsx(styles.bio, !expanded && styles.bioCollapsed)}>

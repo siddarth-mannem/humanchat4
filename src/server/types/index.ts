@@ -27,6 +27,8 @@ export interface User {
   confidential_rate: boolean | null;
   display_mode?: 'normal' | 'by_request' | 'confidential' | null;
   manager_display_name?: string | null;
+  presence_state?: 'active' | 'idle' | 'offline' | null;
+  last_seen_at?: string | null;
   created_at: string;
   updated_at: string;
 }

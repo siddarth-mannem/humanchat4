@@ -6,6 +6,7 @@ import { success } from '../utils/apiResponse.js';
 import type { User } from '../types/index.js';
 import { getUserById, updateUserProfile, searchUsers, getUserAvailability, getUserStatus } from '../services/userService.js';
 import { logRequestedPersonInterest } from '../services/requestedPeopleService.js';
+import { updateUserPresence } from '../services/presenceService.js';
 
 const router = Router();
 
@@ -72,6 +73,25 @@ router.get('/:id/status', authenticate, authenticatedLimiter, async (req, res, n
   try {
     const status = await getUserStatus(req.params.id);
     success(res, status);
+  } catch (error) {
+    next(error);
+  }
+});
+
+const presenceSchema = z.object({ state: z.enum(['active', 'idle', 'offline']) });
+
+router.post('/me/presence', authenticate, authenticatedLimiter, async (req, res, next) => {
+  try {
+    const payload = presenceSchema.parse(req.body ?? {});
+    const user = await updateUserPresence(req.user!.id, payload.state);
+    success(res, {
+      presence: {
+        state: user.presence_state,
+        isOnline: user.is_online,
+        hasActiveSession: user.has_active_session,
+        lastSeenAt: user.last_seen_at
+      }
+    });
   } catch (error) {
     next(error);
   }

@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Inter, Space_Grotesk } from 'next/font/google';
 import PWAInitializer from '../components/PWAInitializer';
 import FirebaseSessionBridge from '../components/FirebaseSessionBridge';
+import IdentityInitializer from '../components/IdentityInitializer';
 
 export const metadata = {
   title: 'HumanChat — Talk to Anyone, About Anything',
@@ -18,6 +19,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="bg-midnight text-white font-body antialiased">
         <PWAInitializer />
         <FirebaseSessionBridge />
+        <IdentityInitializer />
         {children}
       </body>
     </html>

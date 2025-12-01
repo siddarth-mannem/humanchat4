@@ -6,6 +6,7 @@ import styles from './ProfileCard.module.css';
 interface StatusBadgeProps {
   isOnline?: boolean;
   hasActiveSession?: boolean;
+  presenceState?: 'active' | 'idle' | 'offline';
 }
 
 const STATUS_CONFIG = {
@@ -19,6 +20,11 @@ const STATUS_CONFIG = {
     color: styles.statusInCall,
     icon: '🟡'
   },
+  idle: {
+    label: 'Idle',
+    color: styles.statusIdle,
+    icon: '🟠'
+  },
   offline: {
     label: 'Offline',
     color: styles.statusOffline,
@@ -26,8 +32,15 @@ const STATUS_CONFIG = {
   }
 };
 
-export default function StatusBadge({ isOnline, hasActiveSession }: StatusBadgeProps) {
-  const variant = isOnline ? (hasActiveSession ? 'inCall' : 'online') : 'offline';
+export default function StatusBadge({ isOnline, hasActiveSession, presenceState }: StatusBadgeProps) {
+  let variant: keyof typeof STATUS_CONFIG = 'offline';
+  if (hasActiveSession) {
+    variant = 'inCall';
+  } else if (presenceState === 'idle') {
+    variant = 'idle';
+  } else if (isOnline) {
+    variant = 'online';
+  }
   const config = STATUS_CONFIG[variant];
 
   return (

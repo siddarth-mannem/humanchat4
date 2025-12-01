@@ -7,6 +7,8 @@ import { signOut } from 'firebase/auth';
 
 import { firebaseAuth } from '../lib/firebaseClient';
 import { logout } from '../services/authApi';
+import { sessionStatusManager } from '../services/sessionStatusManager';
+import { AUTH_UPDATED_EVENT } from '../constants/events';
 
 interface LogoutButtonProps {
   className?: string;
@@ -32,6 +34,10 @@ const LogoutButton = ({ className, children }: LogoutButtonProps) => {
         console.error('Failed to clear Firebase session', firebaseError);
       }
     } finally {
+      sessionStatusManager.setCurrentUserId(null);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent(AUTH_UPDATED_EVENT));
+      }
       setIsLoading(false);
       router.replace('/');
     }

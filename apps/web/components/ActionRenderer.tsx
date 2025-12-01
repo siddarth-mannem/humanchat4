@@ -38,23 +38,30 @@ const isSessionProposal = (
   return 'host' in payload && 'guest' in payload;
 };
 
-const ShowcaseProfile = ({ profile }: { profile: SamShowcaseProfile }) => (
-  <div className={styles.profileCard}>
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
-      <div>
-        <strong>{profile.name}</strong>
-        {profile.headline && <p className={styles.profileHeadline}>{profile.headline}</p>}
+const ShowcaseProfile = ({ profile }: { profile: SamShowcaseProfile }) => {
+  const presenceState = profile.status === 'away' ? 'idle' : 'active';
+  return (
+    <div className={styles.profileCard}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+        <div>
+          <strong>{profile.name}</strong>
+          {profile.headline && <p className={styles.profileHeadline}>{profile.headline}</p>}
+        </div>
+        {typeof profile.rate_per_minute === 'number' && profile.rate_per_minute > 0 && (
+          <span className={styles.profileHeadline}>{formatRate(profile.rate_per_minute)}</span>
+        )}
       </div>
-      {typeof profile.rate_per_minute === 'number' && profile.rate_per_minute > 0 && (
-        <span className={styles.profileHeadline}>{formatRate(profile.rate_per_minute)}</span>
+      {profile.expertise && profile.expertise.length > 0 && (
+        <p className={styles.profileHeadline}>Focus: {profile.expertise.join(' • ')}</p>
       )}
+      <StatusBadge
+        isOnline={profile.status === 'available'}
+        hasActiveSession={profile.status === 'booked'}
+        presenceState={presenceState}
+      />
     </div>
-    {profile.expertise && profile.expertise.length > 0 && (
-      <p className={styles.profileHeadline}>Focus: {profile.expertise.join(' • ')}</p>
-    )}
-    <StatusBadge isOnline={profile.status === 'available'} hasActiveSession={profile.status === 'booked'} />
-  </div>
-);
+  );
+};
 
 const OfferConnection = ({
   action,

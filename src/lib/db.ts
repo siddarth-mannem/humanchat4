@@ -49,6 +49,8 @@ export interface ProfileSummary {
   availability?: string;
   isOnline?: boolean;
   hasActiveSession?: boolean;
+  presenceState?: 'active' | 'idle' | 'offline';
+  lastSeenAt?: number;
   charityName?: string;
   charityId?: string;
   charityStripeAccountId?: string;

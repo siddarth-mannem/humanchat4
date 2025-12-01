@@ -2,6 +2,7 @@ import { query } from '../db/postgres.js';
 import { redis } from '../db/redis.js';
 import { ApiError } from '../errors/ApiError.js';
 import { User } from '../types/index.js';
+import type { PresenceState } from './presenceService.js';
 
 export const getUserById = async (id: string): Promise<User> => {
   const result = await query<User>('SELECT * FROM users WHERE id = $1', [id]);
@@ -56,20 +57,39 @@ export const getUserAvailability = async (userId: string): Promise<{ slots: Arra
   return { slots };
 };
 
-export const getUserStatus = async (userId: string): Promise<{ status: 'online' | 'online_in_call' | 'offline' }> => {
+export const getUserStatus = async (
+  userId: string
+): Promise<{
+  status: 'online' | 'online_in_call' | 'offline' | 'idle';
+  presenceState: PresenceState;
+  isOnline: boolean;
+  hasActiveSession: boolean;
+  lastSeenAt: string | null;
+}> => {
   const result = await query<User>(
-    'SELECT is_online, has_active_session FROM users WHERE id = $1',
+    'SELECT is_online, has_active_session, presence_state, last_seen_at FROM users WHERE id = $1',
     [userId]
   );
   const user = result.rows[0];
   if (!user) {
     throw new ApiError(404, 'NOT_FOUND', 'User not found');
   }
+  const presenceState = (user.presence_state as PresenceState) ?? (user.is_online ? 'active' : 'offline');
+  let status: 'online' | 'online_in_call' | 'offline' | 'idle' = 'offline';
   if (!user.is_online) {
-    return { status: 'offline' };
+    status = 'offline';
+  } else if (presenceState === 'idle') {
+    status = 'idle';
+  } else if (user.has_active_session) {
+    status = 'online_in_call';
+  } else {
+    status = 'online';
   }
-  if (user.has_active_session) {
-    return { status: 'online_in_call' };
-  }
-  return { status: 'online' };
+  return {
+    status,
+    presenceState,
+    isOnline: user.is_online,
+    hasActiveSession: user.has_active_session,
+    lastSeenAt: user.last_seen_at ?? null
+  };
 };
