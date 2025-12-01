@@ -1,7 +1,7 @@
 'use client';
 
 import clsx from 'clsx';
-import { useProfileDetails } from '../hooks/useProfileDetails';
+import type { UseProfileDetailsResult } from '../hooks/useProfileDetails';
 import type { ConversationCategory } from '../services/profileApi';
 
 const conversationCopy: Record<ConversationCategory, { label: string; helper: string }> = {
@@ -21,8 +21,12 @@ const formatCurrency = (value?: number | null): string => {
   return `$${value.toFixed(value % 1 === 0 ? 0 : 2)}/min`;
 };
 
-export default function ProfileDetailsSummary() {
-  const { profile, loading, error, refresh } = useProfileDetails();
+interface ProfileDetailsSummaryProps {
+  profileState: UseProfileDetailsResult;
+}
+
+export default function ProfileDetailsSummary({ profileState }: ProfileDetailsSummaryProps) {
+  const { profile, loading, error, refresh } = profileState;
 
   const renderStatus = () => {
     if (!profile) return null;

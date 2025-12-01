@@ -9,7 +9,7 @@ import { useConversationData } from '../../hooks/useConversationData';
 const quickActions = [
   { label: 'Open Sam Concierge', href: '/chat?focus=sam', description: 'Continue your AI-powered thread.' },
   { label: 'Browse Workspace', href: '/chat', description: 'Jump back into any human chat.' },
-  { label: 'Edit Profile', href: '/profile', description: 'Update avatar, accessibility, and devices.' }
+  { label: 'Account Preferences', href: '/profile', description: 'Set availability, pricing, and chat settings.' }
 ];
 
 export default function DashboardPage() {

@@ -138,6 +138,7 @@ export interface ProfileUpdateInput {
   scheduledRates?: ScheduledRateEntry[] | null;
   isOnline?: boolean;
   hasActiveSession?: boolean;
+  displayMode?: 'normal' | 'by_request' | 'confidential' | null;
 }
 
 export const fetchUserProfile = async (id: string): Promise<UserProfile> => {
@@ -168,6 +169,9 @@ export const updateUserProfile = async (id: string, updates: ProfileUpdateInput)
   }
   if ('hasActiveSession' in updates) {
     payload.has_active_session = Boolean(updates.hasActiveSession);
+  }
+  if ('displayMode' in updates) {
+    payload.display_mode = updates.displayMode ?? null;
   }
 
   const response = await handleResponse(

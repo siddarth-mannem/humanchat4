@@ -74,7 +74,7 @@ export default function ProfilePanel() {
           )}
         </div>
         <div>
-          <h2 className="text-xl font-semibold">Your Profile</h2>
+          <h2 className="text-xl font-semibold">Your Account</h2>
           <p className="text-sm text-white/60">Update appearance and device integrations.</p>
         </div>
       </div>

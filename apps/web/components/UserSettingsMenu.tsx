@@ -66,7 +66,7 @@ export default function UserSettingsMenu() {
           href="/profile"
           className="block rounded-xl px-3 py-2 text-white/90 transition hover:bg-white/10"
         >
-          Profile
+          Account
         </Link>
         <LogoutButton className="mt-1 w-full rounded-xl border border-white/10 px-3 py-2 text-left text-white/90 hover:bg-white/10" />
       </div>

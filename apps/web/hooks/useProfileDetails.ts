@@ -6,7 +6,7 @@ import { fetchCurrentUser } from '../services/authApi';
 import type { ProfileUpdateInput, UserProfile } from '../services/profileApi';
 import { fetchUserProfile, updateUserProfile } from '../services/profileApi';
 
-interface UseProfileDetailsResult {
+export interface UseProfileDetailsResult {
   user: AuthUser | null;
   profile: UserProfile | null;
   loading: boolean;
