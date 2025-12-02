@@ -15,6 +15,7 @@ interface ActionRendererProps {
   onBookTime?: (profile: ProfileSummary) => void;
   connectingProfileId?: string | null;
   directoryProfiles?: ProfileSummary[];
+  currentUserId?: string;
 }
 
 const formatRate = (rate?: number) => (rate ? `$${rate.toFixed(2)}/min` : '');
@@ -99,7 +100,8 @@ export default function ActionRenderer({
   onConnectNow,
   onBookTime,
   connectingProfileId,
-  directoryProfiles
+  directoryProfiles,
+  currentUserId
 }: ActionRendererProps) {
   if (!action) return null;
 
@@ -109,16 +111,28 @@ export default function ActionRenderer({
       if (!profile?.name) {
         return;
       }
+      if (currentUserId && profile.userId === currentUserId) {
+        return;
+      }
       map.set(profile.name.trim().toLowerCase(), profile);
     });
     return map;
-  }, [directoryProfiles]);
+  }, [directoryProfiles, currentUserId]);
 
   switch (action.type || action.actionType) {
     case 'show_profiles': {
       const profiles = (action as Extract<Action, { type: 'show_profiles' }>).profiles ?? [];
-      const legacyProfiles = profiles.filter(isLegacyProfile) as ProfileSummary[];
-      const showcaseProfiles = profiles.filter((profile) => !isLegacyProfile(profile)) as SamShowcaseProfile[];
+      const visibleProfiles = profiles.filter((profile) => {
+        if (!currentUserId) {
+          return true;
+        }
+        if (isLegacyProfile(profile)) {
+          return profile.userId !== currentUserId;
+        }
+        return true;
+      });
+      const legacyProfiles = visibleProfiles.filter(isLegacyProfile) as ProfileSummary[];
+      const showcaseProfiles = visibleProfiles.filter((profile) => !isLegacyProfile(profile)) as SamShowcaseProfile[];
 
       if (legacyProfiles.length > 0) {
         return (

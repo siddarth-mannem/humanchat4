@@ -474,6 +474,7 @@ export default function SamChatView({
                       onBookTime={onBookTime}
                       connectingProfileId={connectingProfileId}
                       directoryProfiles={onlineProfiles}
+                      currentUserId={localUserId}
                     />
                   ))}
                 </div>

@@ -3,11 +3,13 @@
 import { useEffect, useState } from 'react';
 import AdminRequestedPeopleTable from '../AdminRequestedPeopleTable';
 import { AdminRequestSummary, fetchAdminRequests } from '../../services/adminApi';
+import { updateRequestStatus } from '../../services/requestApi';
 
 export default function AdminRequestsPage() {
   const [requests, setRequests] = useState<AdminRequestSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -35,6 +37,19 @@ export default function AdminRequestsPage() {
     };
   }, []);
 
+  const handleStatusChange = async (id: string, status: AdminRequestSummary['status']) => {
+    setUpdatingId(id);
+    try {
+      const updated = await updateRequestStatus(id, status);
+      setRequests((prev) => prev.map((request) => (request.id === id ? { ...request, status: updated.status } : request)));
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to update request');
+    } finally {
+      setUpdatingId((prev) => (prev === id ? null : prev));
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -55,6 +70,7 @@ export default function AdminRequestsPage() {
                   <th className="px-6 py-3">Message</th>
                   <th className="px-6 py-3">Preferred time</th>
                   <th className="px-6 py-3">Submitted</th>
+                  <th className="px-6 py-3">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/10">
@@ -71,6 +87,25 @@ export default function AdminRequestsPage() {
                     <td className="px-6 py-3 text-white/70">{request.message}</td>
                     <td className="px-6 py-3 text-white/60">{request.preferred_time ?? '—'}</td>
                     <td className="px-6 py-3 text-white/60">{new Date(request.created_at).toLocaleString()}</td>
+                    <td className="px-6 py-3">
+                      <select
+                        aria-label={`Update status for ${request.requester_name}`}
+                        className="rounded-2xl border border-white/30 bg-white/5 px-3 py-1 text-sm text-white"
+                        value={request.status}
+                        disabled={updatingId === request.id}
+                        onChange={(event) => handleStatusChange(request.id, event.target.value as AdminRequestSummary['status'])}
+                      >
+                        <option className="text-black" value="pending">
+                          Pending
+                        </option>
+                        <option className="text-black" value="approved">
+                          Approved
+                        </option>
+                        <option className="text-black" value="declined">
+                          Declined
+                        </option>
+                      </select>
+                    </td>
                   </tr>
                 ))}
                 {!requests.length && !loading && (

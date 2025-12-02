@@ -5,6 +5,7 @@ import type { AuthUser } from '../services/authApi';
 import { fetchCurrentUser } from '../services/authApi';
 import type { ProfileUpdateInput, UserProfile } from '../services/profileApi';
 import { fetchUserProfile, updateUserProfile } from '../services/profileApi';
+import { AUTH_UPDATED_EVENT } from '../constants/events';
 
 export interface UseProfileDetailsResult {
   user: AuthUser | null;
@@ -46,7 +47,29 @@ export const useProfileDetails = (): UseProfileDetailsResult => {
   }, []);
 
   useEffect(() => {
-    void loadProfile();
+    let cancelled = false;
+
+    const hydrate = async () => {
+      if (cancelled) return;
+      await loadProfile();
+    };
+
+    void hydrate();
+
+    const handleAuthUpdate = () => {
+      void hydrate();
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener(AUTH_UPDATED_EVENT, handleAuthUpdate);
+    }
+
+    return () => {
+      cancelled = true;
+      if (typeof window !== 'undefined') {
+        window.removeEventListener(AUTH_UPDATED_EVENT, handleAuthUpdate);
+      }
+    };
   }, [loadProfile]);
 
   const refresh = useCallback(async () => {

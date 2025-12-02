@@ -60,3 +60,24 @@ export const submitConnectionRequest = async (input: CreateConnectionRequestInpu
     local: toCamelRequest(payload.request as ManagedRequestPayload)
   };
 };
+
+export const updateRequestStatus = async (requestId: string, status: ManagedRequestPayload['status']) => {
+  const response = await fetch(`${API_BASE_URL}/api/requests/${requestId}/status`, {
+    method: 'PATCH',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status })
+  });
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => '');
+    throw new Error(detail || 'Unable to update request.');
+  }
+
+  const payload = await response.json();
+  const request = payload?.request as ManagedRequestPayload | undefined;
+  if (!request) {
+    throw new Error('Malformed request status response.');
+  }
+  return request;
+};
