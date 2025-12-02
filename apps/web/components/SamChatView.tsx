@@ -10,6 +10,7 @@ import ActionRenderer from './ActionRenderer';
 import VirtualMessageList from './VirtualMessageList';
 import { notifyNewMessage } from '../utils/notifications';
 import { SAM_CONCIERGE_ID, SAM_FALLBACK_CONVERSATION } from '../hooks/useConversationData';
+import { fetchWithAuthRefresh } from '../utils/fetchWithAuthRefresh';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
@@ -222,7 +223,7 @@ export default function SamChatView({
 
   const loadOnlineProfiles = useCallback(async (): Promise<ProfileSummary[]> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/users/search?online=true`, {
+      const response = await fetchWithAuthRefresh(`${API_BASE_URL}/api/users/search?online=true`, {
         method: 'GET',
         credentials: 'include'
       });

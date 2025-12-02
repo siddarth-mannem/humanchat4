@@ -30,6 +30,15 @@ jest.mock('../../utils/notifications', () => ({
   notifyNewMessage: (...args: unknown[]) => notifyNewMessageMock(...args)
 }));
 
+const mockFetchWithAuthRefresh = jest.fn().mockResolvedValue({
+  ok: true,
+  json: async () => ({ data: { users: [] } })
+} as Response);
+
+jest.mock('../../utils/fetchWithAuthRefresh', () => ({
+  fetchWithAuthRefresh: (...args: unknown[]) => mockFetchWithAuthRefresh(...args)
+}));
+
 const sendSamMessageMock = jest.fn().mockResolvedValue({
   text: 'Here are a few matches for you.',
   actions: [
@@ -61,6 +70,7 @@ describe('SamChatView', () => {
     sessionsPutMock.mockReset().mockResolvedValue(undefined);
     notifyNewMessageMock.mockClear();
     sendSamMessageMock.mockClear();
+    mockFetchWithAuthRefresh.mockClear();
   });
 
   it('sends user draft to Sam concierge and renders returned actions', async () => {
