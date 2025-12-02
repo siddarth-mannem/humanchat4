@@ -7,6 +7,17 @@ const toBool = (value: string | undefined, defaultValue = false): boolean => {
   return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase());
 };
 
+const parseOrigins = (value: string | undefined): string[] => {
+  const source = value?.trim();
+  if (!source) {
+    return ['https://humanchat.com'];
+  }
+  return source
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+};
+
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
   port: Number(process.env.PORT ?? 4000),
@@ -26,7 +37,7 @@ export const env = {
   stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
   stripePlatformFeeBps: process.env.STRIPE_PLATFORM_FEE_BPS ? Number(process.env.STRIPE_PLATFORM_FEE_BPS) : 1000,
   stripeCharityAccountId: process.env.STRIPE_CHARITY_CONNECT_ACCOUNT,
-  corsOrigin: process.env.CORS_ORIGIN ?? 'https://humanchat.com',
+  corsOrigins: parseOrigins(process.env.CORS_ORIGINS ?? process.env.CORS_ORIGIN ?? 'https://humanchat.com'),
   googleClientId: process.env.GOOGLE_CLIENT_ID ?? '',
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
   googleRedirectUri:

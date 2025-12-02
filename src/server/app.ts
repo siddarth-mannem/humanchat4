@@ -12,13 +12,47 @@ import { success } from './utils/apiResponse.js';
 
 const app = express();
 
+const escapeRegex = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const originMatchers = env.corsOrigins.map((entry) => {
+  if (entry === '*') {
+    return /.*/i;
+  }
+  if (entry.includes('*')) {
+    const pattern = `^${entry.split('*').map((segment) => escapeRegex(segment)).join('.*')}$`;
+    return new RegExp(pattern, 'i');
+  }
+  return entry;
+});
+
+const isAllowedOrigin = (origin?: string | null): boolean => {
+  if (!origin) {
+    return true;
+  }
+  return originMatchers.some((matcher) => {
+    if (typeof matcher === 'string') {
+      return matcher === origin;
+    }
+    return matcher.test(origin);
+  });
+};
+
 // Forwarded headers come from Cloud Run's proxy, so trust the first hop to keep rate limiting stable.
 app.set('trust proxy', 1);
 
 app.use(helmet());
 app.use(
   cors({
-    origin: env.corsOrigin,
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) {
+        callback(null, true);
+        return;
+      }
+      if (origin) {
+        console.warn(`[CORS] Blocked origin: ${origin}`);
+      }
+      callback(new Error('Origin not allowed by CORS'));
+    },
     credentials: true
   })
 );

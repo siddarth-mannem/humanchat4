@@ -22,6 +22,7 @@ Use this guide to configure production, staging, and local environments for Huma
 | Backend | `JWT_SECRET` | 32+ char secret for user tokens. |
 | Backend | `STRIPE_SECRET_KEY` | Live-mode Stripe secret. |
 | Backend | `STRIPE_WEBHOOK_SECRET` | Webhook verifier from Stripe dashboard. |
+| Backend | `CORS_ORIGINS` | Comma-separated list of allowed origins (supports `*` wildcards). |
 | Backend | `GEMINI_API_KEY` | Server-side Gemini key. |
 | Backend | `GOOGLE_OAUTH_CLIENT_ID` | OAuth client. |
 | Backend | `GOOGLE_OAUTH_CLIENT_SECRET` | OAuth secret. |

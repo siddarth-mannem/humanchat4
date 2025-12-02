@@ -1,0 +1,28 @@
+{
+  "type": "Prerender",
+  "expiration": false,
+  "group": 5,
+  "bypassToken": "3ea1b5722861f18884eb16a5669d4743",
+  "fallback": {
+    "type": "FileFsRef",
+    "mode": 33188,
+    "fsPath": "__PAGE__.segment.rsc.prerender-fallback.rsc"
+  },
+  "initialHeaders": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/admin/layout,_N_T_/admin/requests/layout,_N_T_/admin/requests/page,_N_T_/admin/requests",
+    "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+    "content-type": "text/x-component",
+    "x-nextjs-postponed": "2"
+  },
+  "allowQuery": [],
+  "allowHeader": [
+    "host",
+    "x-matched-path",
+    "x-prerender-revalidate",
+    "x-prerender-revalidate-if-generated",
+    "x-next-revalidated-tags",
+    "x-next-revalidate-tag-token"
+  ]
+}
