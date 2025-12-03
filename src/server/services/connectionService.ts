@@ -1,11 +1,58 @@
 import { ApiError } from '../errors/ApiError.js';
 import { addConversationMessage, ensureHumanConversation } from './conversationService.js';
-import { createSessionRecord, getSessionById } from './sessionService.js';
+import { createSessionRecord, getSessionById, updateSessionStatus } from './sessionService.js';
 import { getUserById } from './userService.js';
 import type { Conversation, PaymentMode, Session, User } from '../types/index.js';
 import { logger } from '../utils/logger.js';
 
 const INSTANT_SESSION_MINUTES = 30;
+const STALE_PENDING_MINUTES = 10;
+const STALE_ACTIVE_MINUTES = 120;
+
+const minutesSince = (timestamp?: string | null): number | null => {
+  if (!timestamp) {
+    return null;
+  }
+  const parsed = Date.parse(timestamp);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+  return (Date.now() - parsed) / 60000;
+};
+
+const isSessionStale = (session: Session): boolean => {
+  const recencyMinutes = minutesSince(session.updated_at ?? session.start_time ?? session.created_at);
+  if (recencyMinutes == null) {
+    return false;
+  }
+  if (session.status === 'pending') {
+    return recencyMinutes > STALE_PENDING_MINUTES;
+  }
+  if (session.status === 'in_progress') {
+    return recencyMinutes > STALE_ACTIVE_MINUTES;
+  }
+  return false;
+};
+
+const participantsMatch = (session: Session, requesterId: string, targetUserId: string): boolean => {
+  return (
+    (session.host_user_id === targetUserId && session.guest_user_id === requesterId) ||
+    (session.host_user_id === requesterId && session.guest_user_id === targetUserId)
+  );
+};
+
+const expireSessionIfNeeded = async (session: Session): Promise<boolean> => {
+  if (!isSessionStale(session)) {
+    return false;
+  }
+  await updateSessionStatus(session.id, 'complete');
+  logger.warn('Expired stale session blocking instant connect', {
+    sessionId: session.id,
+    status: session.status,
+    conversationId: session.conversation_id
+  });
+  return true;
+};
 
 const derivePaymentMode = (host: User): PaymentMode => {
   switch (host.conversation_type) {
@@ -18,18 +65,41 @@ const derivePaymentMode = (host: User): PaymentMode => {
   }
 };
 
-const ensureConversationIsAvailable = async (conversation: Conversation): Promise<void> => {
+const resolveExistingSession = async (
+  conversation: Conversation,
+  requesterId: string,
+  targetUserId: string
+): Promise<Session | null> => {
   if (!conversation.linked_session_id) {
-    return;
+    return null;
   }
+
   try {
     const session = await getSessionById(conversation.linked_session_id);
-    if (session.status !== 'complete') {
-      throw new ApiError(409, 'SESSION_ACTIVE', 'This conversation already has an active session.');
+
+    if (session.status === 'complete') {
+      return null;
     }
+
+    const expired = await expireSessionIfNeeded(session);
+    if (expired) {
+      return null;
+    }
+
+    if (participantsMatch(session, requesterId, targetUserId)) {
+      logger.info('Reusing existing instant session for participants', {
+        conversationId: conversation.id,
+        sessionId: session.id,
+        requesterId,
+        targetUserId
+      });
+      return session;
+    }
+
+    throw new ApiError(409, 'SESSION_ACTIVE', 'This conversation already has an active session.');
   } catch (error) {
     if (error instanceof ApiError && error.code === 'NOT_FOUND') {
-      return;
+      return null;
     }
     throw error;
   }
@@ -65,7 +135,20 @@ export const initiateInstantConnection = async (
     assertConnectable(requester, target);
 
     const conversation = await ensureHumanConversation(requesterId, targetUserId);
-    await ensureConversationIsAvailable(conversation);
+    const existingSession = await resolveExistingSession(conversation, requesterId, targetUserId);
+
+    if (existingSession) {
+      const hydratedConversation: Conversation = {
+        ...conversation,
+        linked_session_id: existingSession.id,
+        last_activity: existingSession.updated_at ?? conversation.last_activity
+      };
+
+      return {
+        conversation: hydratedConversation,
+        session: existingSession
+      };
+    }
 
     const paymentMode = derivePaymentMode(target);
     const now = new Date();
