@@ -110,7 +110,7 @@ export default function UserSettingsMenu() {
         </div>
         {identity?.email && <p className="px-3 text-xs text-white/60">{identity.email}</p>}
         <Link
-          href="/profile"
+          href="/account"
           className="block rounded-xl px-3 py-2 text-white/90 transition hover:bg-white/10"
         >
           Account

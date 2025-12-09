@@ -5,7 +5,6 @@ import clsx from 'clsx';
 import ConversationSidebar from '../../components/ConversationSidebar';
 import ConversationView from '../../components/ConversationView';
 import MobileBottomNav, { type MobileNavRoute } from '../../components/MobileBottomNav';
-import DiscoverPanel from '../../components/DiscoverPanel';
 import ProfilePanel from '../../components/ProfilePanel';
 import UserSettingsMenu from '../../components/UserSettingsMenu';
 import RequestCenter from '../../components/RequestCenter';
@@ -127,16 +126,11 @@ export default function ChatPage() {
         {isMobile ? (
           <section
             className={clsx('relative flex min-h-0 flex-1 flex-col', {
-              'overflow-hidden': !(activeNav === 'discover' || activeNav === 'profile'),
-              'overflow-y-auto': activeNav === 'discover' || activeNav === 'profile'
+              'overflow-hidden': !(activeNav === 'account'),
+              'overflow-y-auto': activeNav === 'account'
             })}
           >
-            {activeNav === 'discover' && (
-              <div className="flex flex-1">
-                <DiscoverPanel onBookProfile={() => setActiveNav('home')} />
-              </div>
-            )}
-            {activeNav === 'profile' && (
+            {activeNav === 'account' && (
               <div className="flex flex-1">
                 <ProfilePanel />
               </div>
