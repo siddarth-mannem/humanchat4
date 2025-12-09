@@ -11,6 +11,7 @@ import VirtualMessageList from './VirtualMessageList';
 import { notifyNewMessage } from '../utils/notifications';
 import { SAM_CONCIERGE_ID, SAM_FALLBACK_CONVERSATION } from '../hooks/useConversationData';
 import { fetchWithAuthRefresh } from '../utils/fetchWithAuthRefresh';
+import { sessionStatusManager } from '../services/sessionStatusManager';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
@@ -171,15 +172,25 @@ export default function SamChatView({
   const [sendError, setSendError] = useState<string | null>(null);
   const [activeConversationId, setActiveConversationId] = useState(conversation.conversationId);
   const [onlineProfiles, setOnlineProfiles] = useState<ProfileSummary[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(() => sessionStatusManager.getCurrentUserId());
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const formRef = useRef<HTMLFormElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const autoScrollRef = useRef(true);
   const detachAutoScrollListener = useRef<(() => void) | null>(null);
 
+  useEffect(() => {
+    return sessionStatusManager.onCurrentUserChange((next) => {
+      setCurrentUserId(next);
+    });
+  }, []);
+
   const localUserId = useMemo(() => {
+    if (currentUserId) {
+      return currentUserId;
+    }
     return conversation.participants.find((participant) => participant !== 'sam') ?? 'user_local';
-  }, [conversation.participants]);
+  }, [conversation.participants, currentUserId]);
 
   const keepInputFocused = useCallback(() => {
     requestAnimationFrame(() => textareaRef.current?.focus({ preventScroll: true }));

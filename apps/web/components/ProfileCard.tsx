@@ -121,17 +121,19 @@ export default function ProfileCard({ profile, onConnectNow, onBookTime, isConne
       {contributionBlurb && <p className={styles.sessionBlurb}>{contributionBlurb}</p>}
 
       <div className={styles.actions}>
-        <div className={styles.tooltip}>
-          <button
-            className={styles.primaryButton}
-            type="button"
-            disabled={!canInstantConnect || Boolean(isConnecting)}
-            onClick={() => canInstantConnect && !isConnecting && onConnectNow?.(profile)}
-          >
-            {isConnecting ? 'Connecting…' : 'Connect Now'}
-          </button>
-          {tooltip && <span className={styles.tooltipText}>{tooltip}</span>}
-        </div>
+        {!managedConfidential && (
+          <div className={styles.tooltip}>
+            <button
+              className={styles.primaryButton}
+              type="button"
+              disabled={!canInstantConnect || Boolean(isConnecting)}
+              onClick={() => canInstantConnect && !isConnecting && onConnectNow?.(profile)}
+            >
+              {isConnecting ? 'Connecting…' : 'Connect Now'}
+            </button>
+            {tooltip && <span className={styles.tooltipText}>{tooltip}</span>}
+          </div>
+        )}
         <button className={secondaryClass} type="button" onClick={() => onBookTime?.(profile)}>
           {secondaryLabel}
         </button>

@@ -5,6 +5,27 @@ import userEvent from '@testing-library/user-event';
 import SamChatView from '../SamChatView';
 import type { Conversation, Message, ProfileSummary } from '../../../../src/lib/db';
 
+jest.mock('../../services/sessionStatusManager', () => {
+  const getCurrentUserId = jest.fn(() => 'demo-user');
+  const onCurrentUserChange = jest.fn((callback: (userId: string | null) => void) => {
+    callback('demo-user');
+    return jest.fn();
+  });
+  return {
+    sessionStatusManager: {
+      getCurrentUserId,
+      onCurrentUserChange
+    }
+  };
+});
+
+const { sessionStatusManager: mockSessionStatusManager } = jest.requireMock('../../services/sessionStatusManager') as {
+  sessionStatusManager: {
+    getCurrentUserId: jest.Mock;
+    onCurrentUserChange: jest.Mock;
+  };
+};
+
 jest.mock('../../../../src/lib/db', () => ({
   addMessage: jest.fn(),
   db: {
@@ -71,6 +92,11 @@ describe('SamChatView', () => {
     notifyNewMessageMock.mockClear();
     sendSamMessageMock.mockClear();
     mockFetchWithAuthRefresh.mockClear();
+    mockSessionStatusManager.getCurrentUserId.mockReturnValue('demo-user');
+    mockSessionStatusManager.onCurrentUserChange.mockImplementation((callback: (userId: string | null) => void) => {
+      callback('demo-user');
+      return jest.fn();
+    });
   });
 
   it('sends user draft to Sam concierge and renders returned actions', async () => {

@@ -35,4 +35,42 @@ describe('ActionRenderer', () => {
     expect(screen.queryByText('Self Person')).not.toBeInTheDocument();
     expect(screen.getByText('River Product')).toBeInTheDocument();
   });
+
+  it('only renders profiles confirmed online when directory data is present', () => {
+    const offlineProfile: ProfileSummary = {
+      userId: 'mentor-offline',
+      name: 'Offline Mentor',
+      conversationType: 'paid',
+      instantRatePerMinute: 20,
+      scheduledRates: [],
+      isOnline: false,
+      hasActiveSession: false
+    };
+
+    const onlineProfile: ProfileSummary = {
+      userId: 'mentor-online',
+      name: 'Online Mentor',
+      conversationType: 'paid',
+      instantRatePerMinute: 12,
+      scheduledRates: [],
+      isOnline: true,
+      hasActiveSession: false
+    };
+
+    const action = {
+      type: 'show_profiles',
+      profiles: [offlineProfile, onlineProfile]
+    } as Action;
+
+    render(
+      <ActionRenderer
+        action={action}
+        currentUserId="viewer"
+        directoryProfiles={[onlineProfile]}
+      />
+    );
+
+    expect(screen.getByText('Online Mentor')).toBeInTheDocument();
+    expect(screen.queryByText('Offline Mentor')).not.toBeInTheDocument();
+  });
 });
