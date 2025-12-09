@@ -18,6 +18,7 @@ export default function ChatArea({ conversation, messages, registerScrollContain
   const [draft, setDraft] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const formRef = useRef<HTMLFormElement | null>(null);
 
   const orderedMessages = useMemo(() => [...messages].sort((a, b) => a.timestamp - b.timestamp), [messages]);
 
@@ -66,8 +67,22 @@ export default function ChatArea({ conversation, messages, registerScrollContain
         }}
       </VirtualMessageList>
       {isTyping && <div className={styles.typingIndicator}>Typing…</div>}
-      <form className={styles.chatInputBar} onSubmit={handleSubmit}>
-        <textarea placeholder="Message during session…" value={draft} onChange={handleChange} disabled={!currentUserId} />
+      <form ref={formRef} className={styles.chatInputBar} onSubmit={handleSubmit}>
+        <textarea
+          placeholder="Message during session…"
+          value={draft}
+          onChange={handleChange}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+              event.preventDefault();
+              if (!currentUserId) {
+                return;
+              }
+              formRef.current?.requestSubmit();
+            }
+          }}
+          disabled={!currentUserId}
+        />
         <button type="submit" disabled={!draft.trim() || !currentUserId}>
           Send
         </button>

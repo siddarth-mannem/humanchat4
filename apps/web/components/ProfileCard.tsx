@@ -6,6 +6,7 @@ import type { ProfileSummary } from '../../../src/lib/db';
 import styles from './ProfileCard.module.css';
 import StatusBadge from './StatusBadge';
 import RateDisplay from './RateDisplay';
+import { useSessionStatus } from '../hooks/useSessionStatus';
 
 const HUMAN_FALLBACK = 'Human';
 
@@ -28,17 +29,26 @@ interface ProfileCardProps {
 
 export default function ProfileCard({ profile, onConnectNow, onBookTime, isConnecting }: ProfileCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const { isOnline: liveOnline, hasActiveSession: liveActiveSession, presenceState: livePresence, isLoading: statusLoading } = useSessionStatus(
+    profile.userId
+  );
+
+  const hasLiveStatus = Boolean(profile.userId) && !statusLoading;
+  const fallbackPresence = profile.presenceState ?? (profile.isOnline ? 'active' : 'offline');
+  const isOnline = hasLiveStatus ? liveOnline : Boolean(profile.isOnline);
+  const hasActiveSession = hasLiveStatus ? liveActiveSession : Boolean(profile.hasActiveSession);
+  const presenceState = hasLiveStatus ? livePresence : fallbackPresence;
 
   const managedConfidential = Boolean(profile.managed && profile.confidentialRate);
-  const canInstantConnect = Boolean(profile.isOnline && !profile.hasActiveSession && !managedConfidential);
+  const canInstantConnect = Boolean(isOnline && !hasActiveSession && !managedConfidential);
   const tooltip = (() => {
     if (managedConfidential) {
       return 'This profile routes through a manager. Use Schedule.';
     }
-    if (profile.hasActiveSession) {
+    if (hasActiveSession) {
       return 'Currently in a call';
     }
-    if (!profile.isOnline) {
+    if (!isOnline) {
       return 'Offline right now';
     }
     return undefined;
@@ -81,9 +91,9 @@ export default function ProfileCard({ profile, onConnectNow, onBookTime, isConne
       </div>
 
       <StatusBadge
-        isOnline={profile.isOnline}
-        hasActiveSession={profile.hasActiveSession}
-        presenceState={profile.presenceState}
+        isOnline={isOnline}
+        hasActiveSession={hasActiveSession}
+        presenceState={presenceState}
       />
 
       {bioCopy && (
@@ -103,7 +113,7 @@ export default function ProfileCard({ profile, onConnectNow, onBookTime, isConne
         displayMode={profile.displayMode}
         instantRatePerMinute={profile.instantRatePerMinute}
         scheduledRates={profile.scheduledRates}
-        isOnline={profile.isOnline}
+        isOnline={isOnline}
         charityName={profile.charityName}
         donationPreference={profile.donationPreference}
       />

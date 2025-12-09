@@ -2,7 +2,7 @@
 
 import { markSessionStart, markSessionComplete } from './sessionApi';
 
-type PresenceState = 'active' | 'idle' | 'offline';
+export type PresenceState = 'active' | 'idle' | 'offline';
 
 export interface StatusObject {
   userId: string;

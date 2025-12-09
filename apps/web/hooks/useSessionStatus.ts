@@ -1,18 +1,27 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { sessionStatusManager, type SessionStatus } from '../services/sessionStatusManager';
+import { sessionStatusManager, type SessionStatus, type PresenceState } from '../services/sessionStatusManager';
 
 interface SessionStatusState {
   isOnline: boolean;
   hasActiveSession: boolean;
+  presenceState: PresenceState;
   isLoading: boolean;
 }
 
 const initialState: SessionStatusState = {
   isOnline: false,
   hasActiveSession: false,
+  presenceState: 'offline',
   isLoading: false
+};
+
+const derivePresenceState = (status?: Pick<SessionStatus, 'presenceState' | 'isOnline'>): PresenceState => {
+  if (status?.presenceState) {
+    return status.presenceState;
+  }
+  return status?.isOnline ? 'active' : 'offline';
 };
 
 export const useSessionStatus = (userId?: string | null) => {
@@ -36,7 +45,12 @@ export const useSessionStatus = (userId?: string | null) => {
       .checkUserStatus(userId)
       .then((status) => {
         if (!cancelled) {
-          setState({ isOnline: status.isOnline, hasActiveSession: status.hasActiveSession, isLoading: false });
+          setState({
+            isOnline: status.isOnline,
+            hasActiveSession: status.hasActiveSession,
+            presenceState: derivePresenceState(status),
+            isLoading: false
+          });
         }
       })
       .catch((error) => {
@@ -47,7 +61,12 @@ export const useSessionStatus = (userId?: string | null) => {
       });
 
     unsubscribe = sessionStatusManager.subscribeToStatusChanges(userId, (status) => {
-      setState({ isOnline: status.isOnline, hasActiveSession: status.hasActiveSession, isLoading: false });
+      setState({
+        isOnline: status.isOnline,
+        hasActiveSession: status.hasActiveSession,
+        presenceState: derivePresenceState(status),
+        isLoading: false
+      });
     });
 
     return () => {
