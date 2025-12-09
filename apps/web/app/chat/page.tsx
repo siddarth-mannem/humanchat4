@@ -8,8 +8,10 @@ import MobileBottomNav, { type MobileNavRoute } from '../../components/MobileBot
 import DiscoverPanel from '../../components/DiscoverPanel';
 import ProfilePanel from '../../components/ProfilePanel';
 import UserSettingsMenu from '../../components/UserSettingsMenu';
+import RequestCenter from '../../components/RequestCenter';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { useConversationData } from '../../hooks/useConversationData';
+import { useManagedRequests } from '../../hooks/useManagedRequests';
 
 export default function ChatPage() {
   const [activeConversationId, setActiveConversationId] = useState<string | undefined>();
@@ -17,8 +19,18 @@ export default function ChatPage() {
   const [mobilePane, setMobilePane] = useState<'list' | 'conversation'>('list');
   const [activeNav, setActiveNav] = useState<MobileNavRoute>('home');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+  const [requestCenterOpen, setRequestCenterOpen] = useState(false);
   const { isMobile, isTablet } = useBreakpoint();
   const { conversations, unreadTotal } = useConversationData();
+  const {
+    requests,
+    loading: requestsLoading,
+    error: requestsError,
+    pendingCount,
+    refresh: refreshRequests,
+    updateStatus,
+    updatingId
+  } = useManagedRequests();
 
   const samConversationId = useMemo(() => {
     return conversations.find((entry) => entry.conversation.type === 'sam')?.conversation.conversationId ?? 'sam-concierge';
@@ -89,6 +101,13 @@ export default function ChatPage() {
             {sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           </button>
         )}
+        <button
+          type="button"
+          className="rounded-full border border-white/20 px-3 py-1 text-[11px] normal-case tracking-normal text-white hover:border-white/40"
+          onClick={() => setRequestCenterOpen(true)}
+        >
+          {pendingCount > 0 ? `${pendingCount} pending requests` : 'Managed queue'}
+        </button>
         <div className="ml-auto">
           <UserSettingsMenu />
         </div>
@@ -144,6 +163,16 @@ export default function ChatPage() {
         )}
       </div>
       {isMobile && <MobileBottomNav active={activeNav} onChange={handleNavChange} hasUnread={unreadTotal > 0} />}
+      <RequestCenter
+        open={requestCenterOpen}
+        requests={requests}
+        loading={requestsLoading}
+        error={requestsError}
+        updatingId={updatingId}
+        onClose={() => setRequestCenterOpen(false)}
+        onRefresh={refreshRequests}
+        onUpdateStatus={updateStatus}
+      />
     </main>
   );
 }

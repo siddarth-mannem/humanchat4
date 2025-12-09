@@ -1,3 +1,5 @@
+import type { ManagedRequest } from '../../../src/lib/db';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 export interface ManagedRequestPayload {
@@ -20,7 +22,7 @@ export interface CreateConnectionRequestInput {
   budgetRange?: string;
 }
 
-const toCamelRequest = (request: ManagedRequestPayload) => ({
+const toCamelRequest = (request: ManagedRequestPayload): ManagedRequest => ({
   requestId: request.id,
   requesterId: request.requester_user_id,
   targetUserId: request.target_user_id,
@@ -32,6 +34,22 @@ const toCamelRequest = (request: ManagedRequestPayload) => ({
   status: request.status,
   createdAt: Date.parse(request.created_at)
 });
+
+export const fetchManagedRequests = async (): Promise<ManagedRequest[]> => {
+  const response = await fetch(`${API_BASE_URL}/api/requests`, {
+    method: 'GET',
+    credentials: 'include'
+  });
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => '');
+    throw new Error(detail || 'Unable to load requests.');
+  }
+
+  const payload = await response.json();
+  const rows = (payload?.requests ?? []) as ManagedRequestPayload[];
+  return rows.map((row) => toCamelRequest(row));
+};
 
 export const submitConnectionRequest = async (input: CreateConnectionRequestInput) => {
   const response = await fetch(`${API_BASE_URL}/api/requests`, {
@@ -61,7 +79,10 @@ export const submitConnectionRequest = async (input: CreateConnectionRequestInpu
   };
 };
 
-export const updateRequestStatus = async (requestId: string, status: ManagedRequestPayload['status']) => {
+export const updateRequestStatus = async (
+  requestId: string,
+  status: ManagedRequestPayload['status']
+): Promise<ManagedRequest> => {
   const response = await fetch(`${API_BASE_URL}/api/requests/${requestId}/status`, {
     method: 'PATCH',
     credentials: 'include',
@@ -79,5 +100,5 @@ export const updateRequestStatus = async (requestId: string, status: ManagedRequ
   if (!request) {
     throw new Error('Malformed request status response.');
   }
-  return request;
+  return toCamelRequest(request);
 };
