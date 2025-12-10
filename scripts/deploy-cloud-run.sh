@@ -62,8 +62,8 @@ echo "  Image: ${IMAGE}"
 echo ""
 
 if [[ "${SKIP_BUILD}" != "1" ]]; then
-  echo "🔨 Building Docker image for linux/amd64..."
-  docker build --platform linux/amd64 -t "${IMAGE}" .
+  echo "🔨 Building Docker image..."
+  docker build -t "${IMAGE}" .
   
   echo "📤 Pushing image to Container Registry..."
   docker push "${IMAGE}"

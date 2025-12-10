@@ -133,6 +133,10 @@ export const verifyMagicLink = async (token: string): Promise<{ user: User; reme
 };
 
 export const loginWithFirebaseToken = async (idToken: string): Promise<User> => {
+  if (!firebaseAuth) {
+    throw new ApiError(503, 'SERVER_ERROR', 'Firebase authentication is not configured');
+  }
+
   let decoded;
   try {
     decoded = await firebaseAuth.verifyIdToken(idToken);
