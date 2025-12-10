@@ -55,7 +55,7 @@ export default function SessionView({ conversation, session, invite, messages, r
   const isInProgress = session?.status === 'in_progress';
   const isComplete = session?.status === 'complete';
   const isScheduled = !isInProgress && !isComplete && (session?.startTime ?? 0) > now;
-  const shouldShowInvitePanel = Boolean(invite && (!session || session.status !== 'in_progress'));
+  const shouldShowInvitePanel = Boolean(invite);
   const invitePanel = shouldShowInvitePanel && invite ? <InstantInvitePanel invite={invite} currentUserId={currentUserId} /> : null;
   const peerLabel = useMemo(() => {
     const peer = conversation.participants.find((participant) => participant !== currentUserId);
