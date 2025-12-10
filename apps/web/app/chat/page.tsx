@@ -1,14 +1,16 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import clsx from 'clsx';
 import ConversationSidebar from '../../components/ConversationSidebar';
 import ConversationView from '../../components/ConversationView';
 import MobileBottomNav, { type MobileNavRoute } from '../../components/MobileBottomNav';
-import DiscoverPanel from '../../components/DiscoverPanel';
 import ProfilePanel from '../../components/ProfilePanel';
-import LogoutButton from '../../components/LogoutButton';
+import UserSettingsMenu from '../../components/UserSettingsMenu';
+import RequestCenter from '../../components/RequestCenter';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { useConversationData } from '../../hooks/useConversationData';
+import { useManagedRequests } from '../../hooks/useManagedRequests';
 
 export default function ChatPage() {
   const [activeConversationId, setActiveConversationId] = useState<string | undefined>();
@@ -16,8 +18,18 @@ export default function ChatPage() {
   const [mobilePane, setMobilePane] = useState<'list' | 'conversation'>('list');
   const [activeNav, setActiveNav] = useState<MobileNavRoute>('home');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+  const [requestCenterOpen, setRequestCenterOpen] = useState(false);
   const { isMobile, isTablet } = useBreakpoint();
   const { conversations, unreadTotal } = useConversationData();
+  const {
+    requests,
+    loading: requestsLoading,
+    error: requestsError,
+    pendingCount,
+    refresh: refreshRequests,
+    updateStatus,
+    updatingId
+  } = useManagedRequests();
 
   const samConversationId = useMemo(() => {
     return conversations.find((entry) => entry.conversation.type === 'sam')?.conversation.conversationId ?? 'sam-concierge';
@@ -41,6 +53,16 @@ export default function ChatPage() {
       setActiveNav('home');
     }
   }, [shouldOpenSam, samConversationId, isMobile]);
+
+  useEffect(() => {
+    if (activeConversationId || shouldOpenSam) {
+      return;
+    }
+    const firstConversationId = conversations[0]?.conversation.conversationId;
+    if (firstConversationId) {
+      setActiveConversationId(firstConversationId);
+    }
+  }, [activeConversationId, conversations, shouldOpenSam]);
 
   const handleSelectConversation = (conversationId: string) => {
     setActiveConversationId(conversationId);
@@ -66,8 +88,8 @@ export default function ChatPage() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col bg-midnight text-white">
-      <div className="flex flex-wrap items-center gap-3 border-b border-white/10 px-4 py-3 text-xs uppercase tracking-[0.3em] text-white/60">
+    <main className="flex h-screen min-h-screen flex-col overflow-hidden bg-midnight text-white">
+      <header className="sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b border-white/10 bg-midnight px-4 py-3 text-xs uppercase tracking-[0.3em] text-white/60">
         <span>Workspace</span>
         {isTablet && (
           <button
@@ -78,24 +100,41 @@ export default function ChatPage() {
             {sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           </button>
         )}
+        <button
+          type="button"
+          className="rounded-full border border-white/20 px-3 py-1 text-[11px] normal-case tracking-normal text-white hover:border-white/40"
+          onClick={() => setRequestCenterOpen(true)}
+        >
+          {pendingCount > 0 ? `${pendingCount} pending requests` : 'Managed queue'}
+        </button>
         <div className="ml-auto">
-          <LogoutButton />
+          <UserSettingsMenu />
         </div>
-      </div>
+      </header>
 
-      <div className="flex flex-1">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
         {!isMobile && (
-          <ConversationSidebar
-            activeConversationId={activeConversationId}
-            onSelectConversation={handleSelectConversation}
-            collapsed={isTablet && sidebarCollapsed}
-          />
+          <div className="flex h-full shrink-0 overflow-hidden">
+            <ConversationSidebar
+              activeConversationId={activeConversationId}
+              onSelectConversation={handleSelectConversation}
+              collapsed={isTablet && sidebarCollapsed}
+            />
+          </div>
         )}
 
         {isMobile ? (
-          <section className="relative flex min-h-screen flex-1 flex-col">
-            {activeNav === 'discover' && <DiscoverPanel onBookProfile={() => setActiveNav('home')} />}
-            {activeNav === 'profile' && <ProfilePanel />}
+          <section
+            className={clsx('relative flex min-h-0 flex-1 flex-col', {
+              'overflow-hidden': !(activeNav === 'account'),
+              'overflow-y-auto': activeNav === 'account'
+            })}
+          >
+            {activeNav === 'account' && (
+              <div className="flex flex-1">
+                <ProfilePanel />
+              </div>
+            )}
             {activeNav === 'home' && mobilePane === 'list' && (
               <ConversationSidebar
                 activeConversationId={activeConversationId}
@@ -112,12 +151,22 @@ export default function ChatPage() {
             )}
           </section>
         ) : (
-          <section className="flex flex-1 flex-col">
+          <section className="flex flex-1 flex-col overflow-hidden">
             <ConversationView activeConversationId={activeConversationId} onSelectConversation={handleSelectConversation} />
           </section>
         )}
       </div>
       {isMobile && <MobileBottomNav active={activeNav} onChange={handleNavChange} hasUnread={unreadTotal > 0} />}
+      <RequestCenter
+        open={requestCenterOpen}
+        requests={requests}
+        loading={requestsLoading}
+        error={requestsError}
+        updatingId={updatingId}
+        onClose={() => setRequestCenterOpen(false)}
+        onRefresh={refreshRequests}
+        onUpdateStatus={updateStatus}
+      />
     </main>
   );
 }

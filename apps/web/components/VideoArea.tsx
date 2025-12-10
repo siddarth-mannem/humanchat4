@@ -30,9 +30,10 @@ interface VideoAreaProps {
   session: Session;
   currentUserId: string;
   onCallEnd: (summary: CallEndSummary) => void;
+  mediaMode?: 'video' | 'audio';
 }
 
-export default function VideoArea({ session, currentUserId, onCallEnd }: VideoAreaProps) {
+export default function VideoArea({ session, currentUserId, onCallEnd, mediaMode = 'video' }: VideoAreaProps) {
   const callRef = useRef<VideoCall | null>(null);
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -55,11 +56,12 @@ export default function VideoArea({ session, currentUserId, onCallEnd }: VideoAr
       callRef.current = new VideoCall({
         sessionId: session.sessionId,
         userId: currentUserId,
-        isInitiator
+        isInitiator,
+        mediaMode
       });
     }
     return callRef.current;
-  }, [session.sessionId, currentUserId, isInitiator]);
+  }, [session.sessionId, currentUserId, isInitiator, mediaMode]);
 
   const attachStream = useCallback((element: HTMLVideoElement | null, stream: MediaStream | null, mute = false) => {
     if (!element) return;

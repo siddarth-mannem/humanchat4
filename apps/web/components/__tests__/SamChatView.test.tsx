@@ -5,6 +5,27 @@ import userEvent from '@testing-library/user-event';
 import SamChatView from '../SamChatView';
 import type { Conversation, Message, ProfileSummary } from '../../../../src/lib/db';
 
+jest.mock('../../services/sessionStatusManager', () => {
+  const getCurrentUserId = jest.fn(() => 'demo-user');
+  const onCurrentUserChange = jest.fn((callback: (userId: string | null) => void) => {
+    callback('demo-user');
+    return jest.fn();
+  });
+  return {
+    sessionStatusManager: {
+      getCurrentUserId,
+      onCurrentUserChange
+    }
+  };
+});
+
+const { sessionStatusManager: mockSessionStatusManager } = jest.requireMock('../../services/sessionStatusManager') as {
+  sessionStatusManager: {
+    getCurrentUserId: jest.Mock;
+    onCurrentUserChange: jest.Mock;
+  };
+};
+
 jest.mock('../../../../src/lib/db', () => ({
   addMessage: jest.fn(),
   db: {
@@ -28,6 +49,15 @@ const sessionsPutMock = mockedDb.db.sessions.put;
 const notifyNewMessageMock = jest.fn();
 jest.mock('../../utils/notifications', () => ({
   notifyNewMessage: (...args: unknown[]) => notifyNewMessageMock(...args)
+}));
+
+const mockFetchWithAuthRefresh = jest.fn().mockResolvedValue({
+  ok: true,
+  json: async () => ({ data: { users: [] } })
+} as Response);
+
+jest.mock('../../utils/fetchWithAuthRefresh', () => ({
+  fetchWithAuthRefresh: (...args: unknown[]) => mockFetchWithAuthRefresh(...args)
 }));
 
 const sendSamMessageMock = jest.fn().mockResolvedValue({
@@ -61,6 +91,12 @@ describe('SamChatView', () => {
     sessionsPutMock.mockReset().mockResolvedValue(undefined);
     notifyNewMessageMock.mockClear();
     sendSamMessageMock.mockClear();
+    mockFetchWithAuthRefresh.mockClear();
+    mockSessionStatusManager.getCurrentUserId.mockReturnValue('demo-user');
+    mockSessionStatusManager.onCurrentUserChange.mockImplementation((callback: (userId: string | null) => void) => {
+      callback('demo-user');
+      return jest.fn();
+    });
   });
 
   it('sends user draft to Sam concierge and renders returned actions', async () => {

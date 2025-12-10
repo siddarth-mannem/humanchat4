@@ -7,6 +7,7 @@ export type MessageType = 'user_text' | 'sam_response' | 'system_notice';
 export type SessionType = 'instant' | 'scheduled';
 export type SessionStatus = 'pending' | 'in_progress' | 'complete';
 export type PaymentMode = 'free' | 'paid' | 'charity';
+export type InstantInviteStatus = 'pending' | 'accepted' | 'declined' | 'expired' | 'cancelled';
 
 export type SamActionType =
   | 'show_profiles'
@@ -49,6 +50,8 @@ export interface ProfileSummary {
   availability?: string;
   isOnline?: boolean;
   hasActiveSession?: boolean;
+  presenceState?: 'active' | 'idle' | 'offline';
+  lastSeenAt?: number;
   charityName?: string;
   charityId?: string;
   charityStripeAccountId?: string;
@@ -176,6 +179,21 @@ export interface ManagedRequest {
   createdAt: number;
 }
 
+export interface InstantInvite {
+  inviteId: string;
+  conversationId: string;
+  requesterUserId: string;
+  targetUserId: string;
+  status: InstantInviteStatus;
+  expiresAt: number;
+  acceptedAt?: number;
+  declinedAt?: number;
+  cancelledAt?: number;
+  metadata?: Record<string, unknown> | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
 type MessageInput = Omit<Message, 'id' | 'conversationId' | 'timestamp'> & {
   timestamp?: number;
 };
@@ -185,6 +203,7 @@ export type BootstrapPayload = {
   messages?: Message[];
   sessions?: Session[];
   requests?: ManagedRequest[];
+  invites?: InstantInvite[];
 };
 
 declare global {
@@ -226,6 +245,17 @@ const schemaMigrations: SchemaMigration[] = [
       settings: '&key',
       requests: '&requestId,targetUserId,managerId,requesterId,status,createdAt'
     }
+  },
+  {
+    version: 3,
+    stores: {
+      conversations: '&conversationId,type,linkedSessionId,lastActivity,unreadCount',
+      messages: '++id,conversationId,senderId,timestamp,type',
+      sessions: '&sessionId,conversationId,status,startTime,endTime',
+      settings: '&key',
+      requests: '&requestId,targetUserId,managerId,requesterId,status,createdAt',
+      instantInvites: '&inviteId,targetUserId,status,conversationId,expiresAt'
+    }
   }
 ];
 
@@ -245,6 +275,7 @@ class HumanChatDB extends Dexie {
   sessions!: Table<Session, string>;
   settings!: Table<Setting, string>;
   requests!: Table<ManagedRequest, string>;
+  instantInvites!: Table<InstantInvite, string>;
 
   constructor() {
     super(DATABASE_NAME);
@@ -265,6 +296,9 @@ class HumanChatDB extends Dexie {
       }
       if (bootstrap.requests?.length) {
         await this.requests.bulkPut(bootstrap.requests);
+      }
+      if (bootstrap.invites?.length) {
+        await this.instantInvites.bulkPut(bootstrap.invites);
       }
     });
   }
@@ -552,6 +586,39 @@ export const getRequestsForTarget = async (targetUserId: string): Promise<Manage
     return rows.sort((a, b) => b.createdAt - a.createdAt);
   } catch (error) {
     throw toDbError('list target requests', error);
+  }
+};
+
+export const saveInstantInvite = async (invite: InstantInvite): Promise<void> => {
+  try {
+    await db.instantInvites.put(invite);
+  } catch (error) {
+    throw toDbError('save instant invite', error);
+  }
+};
+
+export const removeInstantInvite = async (inviteId: string): Promise<void> => {
+  try {
+    await db.instantInvites.delete(inviteId);
+  } catch (error) {
+    throw toDbError('remove instant invite', error);
+  }
+};
+
+export const getInstantInviteById = async (inviteId: string): Promise<InstantInvite | null> => {
+  try {
+    return (await db.instantInvites.get(inviteId)) ?? null;
+  } catch (error) {
+    throw toDbError('get instant invite', error);
+  }
+};
+
+export const getLatestInviteForConversation = async (conversationId: string): Promise<InstantInvite | null> => {
+  try {
+    const invites = await db.instantInvites.where('conversationId').equals(conversationId).sortBy('updatedAt');
+    return invites.pop() ?? null;
+  } catch (error) {
+    throw toDbError('get latest instant invite', error);
   }
 };
 

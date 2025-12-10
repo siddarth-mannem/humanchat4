@@ -3,9 +3,17 @@
 import { useEffect, useRef } from 'react';
 import { isSignInWithEmailLink, onIdTokenChanged, signInWithEmailLink } from 'firebase/auth';
 import { firebaseAuth } from '../lib/firebaseClient';
+import { AUTH_UPDATED_EVENT } from '../constants/events';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 const EMAIL_STORAGE_KEY = 'hc_email_link';
+
+const notifyAuthUpdated = () => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  window.dispatchEvent(new CustomEvent(AUTH_UPDATED_EVENT));
+};
 
 export default function FirebaseSessionBridge() {
   const inflight = useRef(false);
@@ -56,6 +64,7 @@ export default function FirebaseSessionBridge() {
         });
         if (response.ok) {
           lastToken.current = idToken;
+          notifyAuthUpdated();
         } else {
           lastToken.current = null;
           console.error('Failed to bridge Firebase session');
@@ -74,6 +83,7 @@ export default function FirebaseSessionBridge() {
       if (!mounted) return;
       if (!user) {
         lastToken.current = null;
+        notifyAuthUpdated();
         return;
       }
       try {

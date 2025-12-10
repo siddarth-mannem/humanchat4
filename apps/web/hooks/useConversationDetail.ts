@@ -2,12 +2,20 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { liveQuery } from 'dexie';
-import { db, type Conversation, type Message, type Session } from '../../../src/lib/db';
+import {
+  db,
+  getLatestInviteForConversation,
+  type Conversation,
+  type InstantInvite,
+  type Message,
+  type Session
+} from '../../../src/lib/db';
 import { SAM_CONCIERGE_ID, SAM_FALLBACK_CONVERSATION } from './useConversationData';
 
 interface ConversationDetailState {
   conversation: Conversation | null;
   session: Session | null;
+  invite: InstantInvite | null;
   messages: Message[];
   loading: boolean;
   error: Error | null;
@@ -16,6 +24,7 @@ interface ConversationDetailState {
 const initialState: ConversationDetailState = {
   conversation: null,
   session: null,
+  invite: null,
   messages: [],
   loading: false,
   error: null
@@ -40,15 +49,16 @@ const fetchConversationDetail = async (conversationId: string) => {
     return null;
   }
 
-  const [messages, session] = await Promise.all([
+  const [messages, session, invite] = await Promise.all([
     db.messages
       .where('conversationId')
       .equals(conversationId)
       .sortBy('timestamp'),
-    conversation.linkedSessionId ? db.sessions.get(conversation.linkedSessionId) : null
+    conversation.linkedSessionId ? db.sessions.get(conversation.linkedSessionId) : null,
+    getLatestInviteForConversation(conversationId)
   ]);
 
-  return { conversation, session, messages };
+  return { conversation, session, messages, invite };
 };
 
 export const useConversationDetail = (conversationId?: string) => {
@@ -68,15 +78,15 @@ export const useConversationDetail = (conversationId?: string) => {
     const subscription = liveQuery(() => fetchConversationDetail(conversationId)).subscribe({
       next: (result) => {
         if (!result) {
-          setState({ conversation: null, session: null, messages: [], loading: false, error: null });
+          setState({ conversation: null, session: null, invite: null, messages: [], loading: false, error: null });
           return;
         }
         const session = result.session ?? null;
-        setState({ ...result, session, loading: false, error: null });
+        setState({ ...result, session, invite: result.invite ?? null, loading: false, error: null });
       },
       error: (err) => {
         const error = err instanceof Error ? err : new Error(String(err));
-        setState({ conversation: null, session: null, messages: [], loading: false, error });
+        setState({ conversation: null, session: null, invite: null, messages: [], loading: false, error });
       }
     });
 

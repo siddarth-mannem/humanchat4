@@ -3,11 +3,13 @@ import app from './app.js';
 import { env } from './config/env.js';
 import { setupWebSockets } from './websocket/index.js';
 import { logger } from './utils/logger.js';
+import { startPresenceSweep } from './services/presenceService.js';
 
 logger.info(`NODE_OPTIONS env: ${process.env.NODE_OPTIONS ?? '(undefined)'}`);
 
 const server = http.createServer(app);
 setupWebSockets(server);
+startPresenceSweep();
 
 // Handle uncaught errors
 process.on('uncaughtException', (error) => {

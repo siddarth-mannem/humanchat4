@@ -23,24 +23,46 @@ const app = express();
 const openapiPath = join(__dirname, '../../openapi.yaml');
 const swaggerDocument = YAML.load(openapiPath);
 
+const escapeRegex = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const originMatchers = env.corsOrigins.map((entry) => {
+  if (entry === '*') {
+    return /.*/i;
+  }
+  if (entry.includes('*')) {
+    const pattern = `^${entry.split('*').map((segment) => escapeRegex(segment)).join('.*')}$`;
+    return new RegExp(pattern, 'i');
+  }
+  return entry;
+});
+
+const isAllowedOrigin = (origin?: string | null): boolean => {
+  if (!origin) {
+    return true;
+  }
+  return originMatchers.some((matcher) => {
+    if (typeof matcher === 'string') {
+      return matcher === origin;
+    }
+    return matcher.test(origin);
+  });
+};
+
 // Forwarded headers come from Cloud Run's proxy, so trust the first hop to keep rate limiting stable.
 app.set('trust proxy', 1);
 
 app.use(helmet());
-
-// Support multiple CORS origins
-const allowedOrigins = env.corsOrigin.split(',').map(origin => origin.trim());
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) return callback(null, true);
-      
-      if (allowedOrigins.includes(origin)) {
+      if (isAllowedOrigin(origin)) {
         callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
+        return;
       }
+      if (origin) {
+        console.warn(`[CORS] Blocked origin: ${origin}`);
+      }
+      callback(new Error('Origin not allowed by CORS'));
     },
     credentials: true
   })

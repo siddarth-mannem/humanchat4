@@ -29,7 +29,16 @@ describe('ProfileCard', () => {
     expect(connectButton).toBeEnabled();
 
     await userEvent.click(connectButton);
-    expect(connectSpy).toHaveBeenCalledWith('mentor-101');
+    expect(connectSpy).toHaveBeenCalledWith(baseProfile);
+  });
+
+  it('disables Connect Now while a connection is in progress', () => {
+    const connectSpy = jest.fn();
+    render(<ProfileCard profile={baseProfile} onConnectNow={connectSpy} isConnecting />);
+
+    const connectButton = screen.getByRole('button', { name: /connecting/i });
+    expect(connectButton).toBeDisabled();
+    expect(connectSpy).not.toHaveBeenCalled();
   });
 
   it('shows request flow for managed confidential profiles', async () => {
@@ -51,5 +60,19 @@ describe('ProfileCard', () => {
     expect(bookSpy).toHaveBeenCalledWith(profile);
     expect(connectSpy).not.toHaveBeenCalled();
     expect(screen.getByText(/works through a representative/i)).toBeInTheDocument();
+  });
+
+  it('renders Human fallback copy when profile has no headline or bio', () => {
+    const fallbackProfile: ProfileSummary = {
+      ...baseProfile,
+      headline: '',
+      bio: ''
+    };
+
+    render(<ProfileCard profile={fallbackProfile} />);
+
+    const fallbackText = screen.getAllByText('Human');
+    expect(fallbackText.length).toBeGreaterThanOrEqual(2);
+    expect(screen.queryByRole('button', { name: /read more/i })).toBeNull();
   });
 });

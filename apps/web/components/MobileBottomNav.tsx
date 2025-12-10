@@ -2,7 +2,7 @@
 
 import clsx from 'clsx';
 
-export type MobileNavRoute = 'home' | 'discover' | 'sam' | 'profile';
+export type MobileNavRoute = 'home' | 'sam' | 'account';
 
 interface MobileBottomNavProps {
   active: MobileNavRoute;
@@ -12,15 +12,14 @@ interface MobileBottomNavProps {
 
 const NAV_ITEMS: Array<{ key: MobileNavRoute; label: string }> = [
   { key: 'home', label: 'Home' },
-  { key: 'discover', label: 'Discover' },
   { key: 'sam', label: 'Sam' },
-  { key: 'profile', label: 'Profile' }
+  { key: 'account', label: 'Account' }
 ];
 
 export default function MobileBottomNav({ active, onChange, hasUnread }: MobileBottomNavProps) {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-black/80 backdrop-blur-xl" aria-label="Primary navigation">
-      <div className="grid grid-cols-4">
+      <div className="grid grid-cols-3">
         {NAV_ITEMS.map((item) => (
           <button
             key={item.key}

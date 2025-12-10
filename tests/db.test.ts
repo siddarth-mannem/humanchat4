@@ -12,9 +12,13 @@ import {
   getSession,
   getSetting,
   getRequestsByRequester,
+  getInstantInviteById,
+  getLatestInviteForConversation,
   saveManagedRequest,
   incrementUnread,
   saveSetting,
+  saveInstantInvite,
+  removeInstantInvite,
   updateConversationActivity,
   updateSessionStatus
 } from '../src/lib/db';
@@ -162,5 +166,31 @@ describe('Dexie helper functions', () => {
     expect(requests).toHaveLength(1);
     expect(requests[0].representativeName).toBe('Jordan from VIP Desk');
     expect(requests[0].status).toBe('pending');
+  });
+
+  it('stores and updates instant invites', async () => {
+    const now = Date.now();
+    const invite = {
+      inviteId: 'invite-1',
+      conversationId: 'conv-1',
+      requesterUserId: 'user-a',
+      targetUserId: 'user-b',
+      status: 'pending' as const,
+      expiresAt: now + 300000,
+      createdAt: now,
+      updatedAt: now
+    };
+
+    await saveInstantInvite(invite);
+    const stored = await getInstantInviteById(invite.inviteId);
+    expect(stored?.status).toBe('pending');
+
+    await saveInstantInvite({ ...invite, status: 'accepted', acceptedAt: now + 1000, updatedAt: now + 1000 });
+    const latest = await getLatestInviteForConversation('conv-1');
+    expect(latest?.status).toBe('accepted');
+
+    await removeInstantInvite(invite.inviteId);
+    const removed = await getInstantInviteById(invite.inviteId);
+    expect(removed).toBeNull();
   });
 });

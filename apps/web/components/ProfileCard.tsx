@@ -6,19 +6,56 @@ import type { ProfileSummary } from '../../../src/lib/db';
 import styles from './ProfileCard.module.css';
 import StatusBadge from './StatusBadge';
 import RateDisplay from './RateDisplay';
+import { useSessionStatus } from '../hooks/useSessionStatus';
+
+const HUMAN_FALLBACK = 'Human';
+
+const ensureHumanCopy = (value?: string | null): string => {
+  const trimmed = value?.trim();
+  return trimmed && trimmed.length > 0 ? trimmed : HUMAN_FALLBACK;
+};
+
+const hasCustomCopy = (value?: string | null): boolean => {
+  const trimmed = value?.trim();
+  return Boolean(trimmed && trimmed.length > 0);
+};
 
 interface ProfileCardProps {
   profile: ProfileSummary;
-  onConnectNow?: (userId: string) => void;
+  onConnectNow?: (profile: ProfileSummary) => void;
   onBookTime?: (profile: ProfileSummary) => void;
+  isConnecting?: boolean;
 }
 
-export default function ProfileCard({ profile, onConnectNow, onBookTime }: ProfileCardProps) {
+export default function ProfileCard({ profile, onConnectNow, onBookTime, isConnecting }: ProfileCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const { isOnline: liveOnline, hasActiveSession: liveActiveSession, presenceState: livePresence, isLoading: statusLoading } = useSessionStatus(
+    profile.userId
+  );
 
-  const canConnect = Boolean(profile.isOnline && !profile.hasActiveSession);
-  const tooltip = profile.hasActiveSession ? 'Currently in a call' : undefined;
+  const hasLiveStatus = Boolean(profile.userId) && !statusLoading;
+  const fallbackPresence = profile.presenceState ?? (profile.isOnline ? 'active' : 'offline');
+  const isOnline = hasLiveStatus ? liveOnline : Boolean(profile.isOnline);
+  const hasActiveSession = hasLiveStatus ? liveActiveSession : Boolean(profile.hasActiveSession);
+  const presenceState = hasLiveStatus ? livePresence : fallbackPresence;
+
   const managedConfidential = Boolean(profile.managed && profile.confidentialRate);
+  const canInstantConnect = Boolean(isOnline && !hasActiveSession && !managedConfidential);
+  const tooltip = (() => {
+    if (managedConfidential) {
+      return 'This profile routes through a manager. Use Schedule.';
+    }
+    if (hasActiveSession) {
+      return 'Currently in a call';
+    }
+    if (!isOnline) {
+      return 'Offline right now';
+    }
+    return undefined;
+  })();
+  const headlineCopy = ensureHumanCopy(profile.headline);
+  const bioCopy = ensureHumanCopy(profile.bio);
+  const hasCustomBio = hasCustomCopy(profile.bio);
   const contributionBlurb = useMemo(() => {
     if (managedConfidential) {
       return `${profile.name ?? 'This talent'} works through a representative. Send a request and their team will coordinate the details.`;
@@ -35,7 +72,7 @@ export default function ProfileCard({ profile, onConnectNow, onBookTime }: Profi
     return null;
   }, [managedConfidential, profile.conversationType, profile.donationPreference, profile.instantRatePerMinute, profile.name, profile.charityName]);
 
-  const secondaryLabel = managedConfidential ? 'Send Request' : 'Book Time';
+  const secondaryLabel = managedConfidential ? 'Send Request' : 'Schedule';
   const secondaryClass = managedConfidential ? styles.requestButton : styles.secondaryButton;
 
   return (
@@ -49,16 +86,20 @@ export default function ProfileCard({ profile, onConnectNow, onBookTime }: Profi
         />
         <div className={styles.nameBlock}>
           <strong className={styles.name}>{profile.name}</strong>
-          {profile.headline && <p className={styles.headline}>{profile.headline}</p>}
+          <p className={styles.headline}>{headlineCopy}</p>
         </div>
       </div>
 
-      <StatusBadge isOnline={profile.isOnline} hasActiveSession={profile.hasActiveSession} />
+      <StatusBadge
+        isOnline={isOnline}
+        hasActiveSession={hasActiveSession}
+        presenceState={presenceState}
+      />
 
-      {profile.bio && (
+      {bioCopy && (
         <div className={clsx(styles.bio, !expanded && styles.bioCollapsed)}>
-          {profile.bio}
-          {!expanded && (
+          {bioCopy}
+          {!expanded && hasCustomBio && (
             <button className={styles.readMore} type="button" onClick={() => setExpanded(true)}>
               Read more
             </button>
@@ -72,7 +113,7 @@ export default function ProfileCard({ profile, onConnectNow, onBookTime }: Profi
         displayMode={profile.displayMode}
         instantRatePerMinute={profile.instantRatePerMinute}
         scheduledRates={profile.scheduledRates}
-        isOnline={profile.isOnline}
+        isOnline={isOnline}
         charityName={profile.charityName}
         donationPreference={profile.donationPreference}
       />
@@ -85,10 +126,10 @@ export default function ProfileCard({ profile, onConnectNow, onBookTime }: Profi
             <button
               className={styles.primaryButton}
               type="button"
-              disabled={!canConnect}
-              onClick={() => canConnect && onConnectNow?.(profile.userId)}
+              disabled={!canInstantConnect || Boolean(isConnecting)}
+              onClick={() => canInstantConnect && !isConnecting && onConnectNow?.(profile)}
             >
-              Connect Now
+              {isConnecting ? 'Connecting…' : 'Connect Now'}
             </button>
             {tooltip && <span className={styles.tooltipText}>{tooltip}</span>}
           </div>

@@ -13,4 +13,9 @@ describe('StatusBadge', () => {
     render(<StatusBadge isOnline={false} />);
     expect(screen.getByText(/offline/i)).toBeInTheDocument();
   });
+
+  it('shows idle state when presence is idle', () => {
+    render(<StatusBadge isOnline presenceState="idle" />);
+    expect(screen.getByText(/idle/i)).toBeInTheDocument();
+  });
 });

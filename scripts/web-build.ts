@@ -3,7 +3,7 @@ import { existsSync, cpSync, rmSync, mkdirSync, readdirSync, readFileSync, write
 import { resolve } from 'node:path';
 import { config as loadEnv } from 'dotenv';
 
-const envFiles = ['.env', '.env.local', 'apps/web/.env', 'apps/web/.env.local'].map((file) =>
+const envFiles = ['.env', '.env.local', '.env.cloudrun', 'apps/web/.env', 'apps/web/.env.local'].map((file) =>
   resolve(process.cwd(), file)
 );
 

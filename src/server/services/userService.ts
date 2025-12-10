@@ -2,6 +2,23 @@ import { query } from '../db/postgres.js';
 import { redis } from '../db/redis.js';
 import { ApiError } from '../errors/ApiError.js';
 import { User } from '../types/index.js';
+import type { PresenceState } from './presenceService.js';
+
+const HUMAN_FALLBACK = 'Human';
+const ONLINE_TTL_SECONDS = 120;
+
+const normalizeProfileCopy = (value?: string | null): string => {
+  const trimmed = value?.trim();
+  return trimmed && trimmed.length > 0 ? trimmed : HUMAN_FALLBACK;
+};
+
+const applyHumanDefaults = <T extends Pick<User, 'headline' | 'bio'>>(record: T): T => {
+  return {
+    ...record,
+    headline: normalizeProfileCopy(record.headline),
+    bio: normalizeProfileCopy(record.bio)
+  };
+};
 
 export const getUserById = async (id: string): Promise<User> => {
   const result = await query<User>('SELECT * FROM users WHERE id = $1', [id]);
@@ -9,7 +26,7 @@ export const getUserById = async (id: string): Promise<User> => {
   if (!user) {
     throw new ApiError(404, 'NOT_FOUND', 'User not found');
   }
-  return user;
+  return applyHumanDefaults(user);
 };
 
 export const updateUserProfile = async (id: string, updates: Partial<User>): Promise<User> => {
@@ -37,11 +54,15 @@ export const searchUsers = async (q: string, online?: boolean): Promise<User[]> 
   if (online !== undefined) {
     params.push(online);
     where += ` AND is_online = $${params.length}`;
+    if (online) {
+      params.push(`${ONLINE_TTL_SECONDS} seconds`);
+      where += ` AND last_seen_at IS NOT NULL AND last_seen_at > NOW() - ($${params.length}::interval) AND presence_state <> 'offline'`;
+    }
   }
 
   const sql = `SELECT * FROM users ${where} ORDER BY is_online DESC, name ASC LIMIT 50`;
   const result = await query<User>(sql, params);
-  return result.rows;
+  return result.rows.map(applyHumanDefaults);
 };
 
 export const getUserAvailability = async (userId: string): Promise<{ slots: Array<{ start: string; end: string }> }> => {
@@ -56,20 +77,39 @@ export const getUserAvailability = async (userId: string): Promise<{ slots: Arra
   return { slots };
 };
 
-export const getUserStatus = async (userId: string): Promise<{ status: 'online' | 'online_in_call' | 'offline' }> => {
+export const getUserStatus = async (
+  userId: string
+): Promise<{
+  status: 'online' | 'online_in_call' | 'offline' | 'idle';
+  presenceState: PresenceState;
+  isOnline: boolean;
+  hasActiveSession: boolean;
+  lastSeenAt: string | null;
+}> => {
   const result = await query<User>(
-    'SELECT is_online, has_active_session FROM users WHERE id = $1',
+    'SELECT is_online, has_active_session, presence_state, last_seen_at FROM users WHERE id = $1',
     [userId]
   );
   const user = result.rows[0];
   if (!user) {
     throw new ApiError(404, 'NOT_FOUND', 'User not found');
   }
+  const presenceState = (user.presence_state as PresenceState) ?? (user.is_online ? 'active' : 'offline');
+  let status: 'online' | 'online_in_call' | 'offline' | 'idle' = 'offline';
   if (!user.is_online) {
-    return { status: 'offline' };
+    status = 'offline';
+  } else if (presenceState === 'idle') {
+    status = 'idle';
+  } else if (user.has_active_session) {
+    status = 'online_in_call';
+  } else {
+    status = 'online';
   }
-  if (user.has_active_session) {
-    return { status: 'online_in_call' };
-  }
-  return { status: 'online' };
+  return {
+    status,
+    presenceState,
+    isOnline: user.is_online,
+    hasActiveSession: user.has_active_session,
+    lastSeenAt: user.last_seen_at ?? null
+  };
 };

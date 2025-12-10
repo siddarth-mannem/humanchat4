@@ -26,7 +26,16 @@ export const fetchCurrentUser = async (): Promise<AuthUser | null> => {
     return null;
   }
   const payload = await handleResponse(result);
-  return payload.user ?? null;
+  if (payload?.user) {
+    return payload.user as AuthUser;
+  }
+  if (payload?.data?.user) {
+    return payload.data.user as AuthUser;
+  }
+  if (payload?.data && 'id' in payload.data) {
+    return payload.data as AuthUser;
+  }
+  return null;
 };
 
 export const logout = async (): Promise<void> => {

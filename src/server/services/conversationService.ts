@@ -22,6 +22,16 @@ const ensureConversationIdIsUuid = (conversationId: string): void => {
   }
 };
 
+const ensureUserIdIsUuid = (userId: string, label: string): void => {
+  if (!uuidValidate(userId)) {
+    throw new ApiError(400, 'INVALID_REQUEST', `${label} must be a UUID`);
+  }
+};
+
+const sortParticipants = (first: string, second: string): [string, string] => {
+  return first.localeCompare(second) <= 0 ? [first, second] : [second, first];
+};
+
 export const listConversations = async (userId: string): Promise<Conversation[]> => {
   const result = await query<Conversation>(
     `SELECT * 
@@ -117,6 +127,43 @@ export const ensureSamConversation = async (userId: string): Promise<Conversatio
      VALUES ($1, 'sam', ARRAY[$2]::UUID[], NOW())
      RETURNING *`,
     [conversationId, userId]
+  );
+
+  return insert.rows[0];
+};
+
+const findHumanConversationBetween = async (userA: string, userB: string): Promise<Conversation | null> => {
+  const result = await query<Conversation>(
+    `SELECT *
+     FROM conversations
+     WHERE type = 'human'
+       AND array_length(participants, 1) = 2
+       AND participants @> ARRAY[$1::uuid, $2::uuid]
+     ORDER BY last_activity DESC
+     LIMIT 1`,
+    [userA, userB]
+  );
+  return result.rows[0] ?? null;
+};
+
+export const ensureHumanConversation = async (userA: string, userB: string): Promise<Conversation> => {
+  ensureUserIdIsUuid(userA, 'User id');
+  ensureUserIdIsUuid(userB, 'Target user id');
+  if (userA === userB) {
+    throw new ApiError(400, 'INVALID_REQUEST', 'Cannot create a conversation with yourself');
+  }
+
+  const [first, second] = sortParticipants(userA, userB);
+  const existing = await findHumanConversationBetween(first, second);
+  if (existing) {
+    return existing;
+  }
+
+  const insert = await query<Conversation>(
+    `INSERT INTO conversations (type, participants, last_activity)
+     VALUES ('human', ARRAY[$1::uuid, $2::uuid], NOW())
+     RETURNING *`,
+    [first, second]
   );
 
   return insert.rows[0];

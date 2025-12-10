@@ -62,8 +62,8 @@ export default function EndCallFlow({ summary, onDismiss, onDonate }: EndCallFlo
               Send thanks{summary.peerName ? ` to ${summary.peerName}` : ''}
             </button>
           )}
-          <button type="button" className={styles.primaryButton} onClick={onDismiss}>
-            Close
+          <button type="button" className={styles.primaryButton} onClick={onDismiss} autoFocus>
+            Return to chat
           </button>
         </div>
       </div>

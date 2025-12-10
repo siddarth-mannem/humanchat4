@@ -104,6 +104,8 @@ ENV_FILE=.env.cloudrun INSTANCE_CONNECTION="loyal-env-475400-u0:us-central1:user
 
 `scripts/sync-env.sh` will source the specified env file, validate secrets, start the Cloud SQL Auth Proxy (downloading it if necessary), rewrite the local `DATABASE_URL` to use `127.0.0.1:<LOCAL_DB_PORT>`, and run `npm run db:migrate`. Override `LOCAL_DB_PORT` or `MIGRATE_CMD` if needed.
 
+> **Note:** `.env.cloudrun` uses `KEY=VALUE` pairs so the Next.js build step can load public env vars during Docker builds. Use `.env.cloudrun.yaml` (YAML map syntax) with `ENV_FILE=.env.cloudrun.yaml ./scripts/deploy-api.sh` so `gcloud run deploy --env-vars-file` accepts the config.
+
 ## Terraform Workflow
 ```bash
 cd infra

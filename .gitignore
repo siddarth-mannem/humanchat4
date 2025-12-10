@@ -15,6 +15,7 @@ coverage/
 .idea/
 apps/web/.next/
 .next/
+.vercel/
 # Generated from apps/web/public during builds
 public/
 

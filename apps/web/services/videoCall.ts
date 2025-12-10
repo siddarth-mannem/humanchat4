@@ -49,6 +49,7 @@ export interface VideoCallOptions {
   isInitiator: boolean;
   signalingBaseUrl?: string;
   signalingPath?: string;
+  mediaMode?: 'video' | 'audio';
 }
 
 export class VideoCall {
@@ -59,6 +60,7 @@ export class VideoCall {
   private readonly sessionId: string;
   private readonly userId: string;
   private readonly isInitiator: boolean;
+  private readonly mediaMode: 'video' | 'audio';
   private state: VideoCallState = 'idle';
   private listeners = createListenerMap();
   private connectionTimeout?: ReturnType<typeof setTimeout>;
@@ -74,6 +76,7 @@ export class VideoCall {
     this.isInitiator = options.isInitiator;
     this.signalingBase = (options.signalingBaseUrl ?? WS_BASE_URL).replace(/\/$/, '');
     this.signalingPath = options.signalingPath ?? DEFAULT_SIGNALING_PATH;
+    this.mediaMode = options.mediaMode ?? 'video';
   }
 
   public on<T extends keyof VideoCallEvents>(event: T, callback: VideoCallEvents[T]): () => void {
@@ -116,7 +119,7 @@ export class VideoCall {
     this.setState('permission');
     try {
       this.localStream = await navigator.mediaDevices.getUserMedia({
-        video: true,
+        video: this.mediaMode === 'video',
         audio: true
       });
       this.emit('localStream', this.localStream);

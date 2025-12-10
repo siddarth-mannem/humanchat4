@@ -9,6 +9,8 @@ import SessionView from './SessionView';
 import type { ProfileSummary } from '../../../src/lib/db';
 import BookingModal from './BookingModal';
 import RequestForm from './RequestForm';
+import { connectNow as connectNowWithProfile } from '../services/conversationClient';
+import { sessionStatusManager } from '../services/sessionStatusManager';
 
 interface ConversationViewProps {
   activeConversationId?: string;
@@ -23,11 +25,13 @@ type ScrollBinding = {
 };
 
 export default function ConversationView({ activeConversationId, onSelectConversation, isMobile, onBack }: ConversationViewProps) {
-  const { conversation, session, messages, loading, error } = useConversationDetail(activeConversationId);
+  const { conversation, session, invite, messages, loading, error } = useConversationDetail(activeConversationId);
   const scrollPositions = useRef<Map<string, number>>(new Map());
   const bindingRef = useRef<ScrollBinding>({ node: null });
   const [bookingProfile, setBookingProfile] = useState<ProfileSummary | null>(null);
   const [requestProfile, setRequestProfile] = useState<ProfileSummary | null>(null);
+  const [connectError, setConnectError] = useState<string | null>(null);
+  const [connectingProfileId, setConnectingProfileId] = useState<string | null>(null);
 
   const registerScrollContainer = useCallback(
     (node: HTMLDivElement | null) => {
@@ -65,6 +69,15 @@ export default function ConversationView({ activeConversationId, onSelectConvers
     };
   }, []);
 
+  const scrollToLatest = useCallback(() => {
+    const node = bindingRef.current.node;
+    if (!node) return;
+    node.scrollTo({ top: node.scrollHeight, behavior: 'smooth' });
+    if (activeConversationId) {
+      scrollPositions.current.set(activeConversationId, node.scrollHeight);
+    }
+  }, [activeConversationId]);
+
   const summary = useMemo(() => {
     if (!activeConversationId) {
       return {
@@ -84,6 +97,33 @@ export default function ConversationView({ activeConversationId, onSelectConvers
     };
   }, [activeConversationId, conversation]);
 
+  const handleConnectNow = useCallback(
+    async (profile: ProfileSummary) => {
+      if (!profile.userId) {
+        setConnectError('Unable to start a session for this profile.');
+        return;
+      }
+      const currentUserId = sessionStatusManager.getCurrentUserId();
+      if (!currentUserId) {
+        setConnectError('Please sign back in to start a live session.');
+        return;
+      }
+
+      setConnectingProfileId(profile.userId);
+      setConnectError(null);
+      try {
+        const createdConversationId = await connectNowWithProfile(profile, currentUserId);
+        onSelectConversation?.(createdConversationId);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Sam could not connect that session.';
+        setConnectError(message);
+      } finally {
+        setConnectingProfileId((prev) => (prev === profile.userId ? null : prev));
+      }
+    },
+    [onSelectConversation]
+  );
+
   return (
     <>
       <section className={clsx(styles.container, isMobile && styles.mobileContainer)}>
@@ -98,11 +138,12 @@ export default function ConversationView({ activeConversationId, onSelectConvers
           <div className={styles.subtitle}>{summary.subtitle}</div>
         </div>
         {conversation && (
-          <div className={styles.subtitle}>
+          <div className={styles.metadata}>
             Last activity • {new Date(conversation.lastActivity).toLocaleTimeString()}
           </div>
         )}
       </div>
+      {connectError && <div className={styles.error}>{connectError}</div>}
       <div className={styles.viewArea}>
         {!activeConversationId && <div className={styles.placeholder}>Choose a conversation to see the full history and context.</div>}
         {activeConversationId && loading && <div className={styles.loading}>Loading conversation…</div>}
@@ -117,9 +158,8 @@ export default function ConversationView({ activeConversationId, onSelectConvers
                 messages={messages}
                 registerScrollContainer={registerScrollContainer}
                 onOpenConversation={onSelectConversation}
-                onConnectNow={(userId) => {
-                  console.info('Connect now with', userId);
-                }}
+                onConnectNow={handleConnectNow}
+                connectingProfileId={connectingProfileId}
                 onBookTime={(profile) => {
                   if (profile.managed && profile.confidentialRate) {
                     setRequestProfile(profile);
@@ -132,8 +172,10 @@ export default function ConversationView({ activeConversationId, onSelectConvers
               <SessionView
                 conversation={conversation}
                 session={session}
+                invite={invite}
                 messages={messages}
                 registerScrollContainer={registerScrollContainer}
+                onScrollToLatest={scrollToLatest}
               />
             )}
           </div>

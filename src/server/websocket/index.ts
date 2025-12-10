@@ -124,7 +124,7 @@ export const setupWebSockets = (server: Server): { wss: WebSocketServer; close: 
     socket.close(1008, 'Unknown channel');
   });
 
-  const subscriber = createRedisClient();
+  const subscriber = typeof redis.duplicate === 'function' ? redis.duplicate() : createRedisClient();
 
   const logEvent = (event: string): void => {
     logger.info('WebSocket Redis event', { event, status: subscriber.status });

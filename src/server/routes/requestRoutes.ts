@@ -44,7 +44,10 @@ const statusSchema = z.object({ status: z.enum(['pending', 'approved', 'declined
 router.patch('/:id/status', authenticate, authenticatedLimiter, async (req, res, next) => {
   try {
     const payload = statusSchema.parse(req.body);
-    const request = await updateRequestStatus(req.params.id, payload.status);
+    const request = await updateRequestStatus(req.params.id, payload.status, {
+      id: req.user!.id,
+      role: req.user!.role
+    });
     success(res, { request });
   } catch (error) {
     next(error);

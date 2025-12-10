@@ -38,6 +38,10 @@ For the authoritative schema import `openapi.yaml` into Postman, Stoplight, or S
 | GET | `/api/conversations/:id/messages?cursor=` | Paginated messages. |
 | POST | `/api/conversations/:id/messages` | Send a message (text, attachments, Sam action). |
 | POST | `/api/conversations` | Start a new human conversation. |
+| POST | `/api/conversations/connect` | Initiate instant connection. Returns session (paid) or invite (free). |
+| POST | `/api/conversations/invites/:inviteId/accept` | Host accepts an instant invite → session spins up. |
+| POST | `/api/conversations/invites/:inviteId/decline` | Host declines pending invite. |
+| POST | `/api/conversations/invites/:inviteId/cancel` | Requester cancels pending invite. |
 
 #### Example: Send Message
 ```http
@@ -102,6 +106,7 @@ Payload fields: `message`, `conversationHistory`, `userContext` (timezone, booki
   - `status:userId`
   - `conversation:conversationId`
   - `sessions:userId`
+- Instant invite events stream on `wss://ws.humanchat.com/notifications/:userId` (server broadcasts `type="instant_invite"` payloads for pending/accepted/etc.).
 
 Messages follow `{ type: "conversation.updated", payload: { ... } }` pattern.
 

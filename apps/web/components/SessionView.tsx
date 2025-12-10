@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import type { Conversation, Message, Session } from '../../../src/lib/db';
+import type { Conversation, InstantInvite, Message, Session } from '../../../src/lib/db';
 import styles from './ConversationView.module.css';
 import VideoArea, { type CallEndSummary } from './VideoArea';
 import ChatArea from './ChatArea';
@@ -10,12 +10,15 @@ import DonationModal from './DonationModal';
 import { sessionStatusManager } from '../services/sessionStatusManager';
 import VirtualMessageList from './VirtualMessageList';
 import MessageBubble from './MessageBubble';
+import InstantInvitePanel from './InstantInvitePanel';
 
 interface SessionViewProps {
   conversation: Conversation;
   session: Session | null;
+  invite?: InstantInvite | null;
   messages: Message[];
   registerScrollContainer: (node: HTMLDivElement | null) => void;
+  onScrollToLatest?: () => void;
 }
 
 const isUserMessage = (message: Message, conversation: Conversation) => {
@@ -31,11 +34,12 @@ const formatCountdown = (target: number) => {
   return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 };
 
-export default function SessionView({ conversation, session, messages, registerScrollContainer }: SessionViewProps) {
+export default function SessionView({ conversation, session, invite, messages, registerScrollContainer, onScrollToLatest }: SessionViewProps) {
   const [now, setNow] = useState(Date.now());
   const [currentUserId, setCurrentUserId] = useState<string | null>(() => sessionStatusManager.getCurrentUserId());
   const [callSummary, setCallSummary] = useState<(CallEndSummary & { peerName?: string }) | null>(null);
   const [showDonationModal, setShowDonationModal] = useState(false);
+  const [callMode, setCallMode] = useState<'video' | 'audio' | null>(null);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
@@ -55,6 +59,25 @@ export default function SessionView({ conversation, session, messages, registerS
     const peer = conversation.participants.find((participant) => participant !== currentUserId);
     return peer ?? 'Session participant';
   }, [conversation.participants, currentUserId]);
+
+  useEffect(() => {
+    setCallMode(null);
+    setCallSummary(null);
+    setShowDonationModal(false);
+  }, [conversation.conversationId]);
+
+  if (!session && invite) {
+    return (
+      <div className={styles.sessionShell}>
+        <InstantInvitePanel invite={invite} currentUserId={currentUserId} />
+        <VirtualMessageList messages={orderedMessages} className={styles.messageList} registerScrollContainer={registerScrollContainer}>
+          {(message) => (
+            <MessageBubble message={message} variant={isUserMessage(message, conversation) ? 'user' : 'sam'} />
+          )}
+        </VirtualMessageList>
+      </div>
+    );
+  }
 
   if (isScheduled) {
     return (
@@ -88,20 +111,59 @@ export default function SessionView({ conversation, session, messages, registerS
   const handleCallEnd = (summary: CallEndSummary) => {
     setCallSummary({ ...summary, peerName: peerLabel });
     setShowDonationModal(false);
+    setCallMode(null);
   };
 
   const handleDismissSummary = () => {
     setCallSummary(null);
     setShowDonationModal(false);
+    onScrollToLatest?.();
   };
 
   const shouldShowDonationModal = Boolean(callSummary?.donationAllowed && !callSummary.confidentialRate && showDonationModal && session);
+  const canLaunchCall = Boolean(session && currentUserId);
+  const callActive = Boolean(callMode && canLaunchCall);
+
+  const handleLaunchCall = (mode: 'video' | 'audio') => {
+    if (!canLaunchCall) return;
+    setShowDonationModal(false);
+    setCallSummary(null);
+    setCallMode(mode);
+  };
 
   return (
-    <div className={styles.sessionShell}>
-      <div className={styles.videoSection}>
-        <VideoArea session={session} currentUserId={currentUserId} onCallEnd={handleCallEnd} />
+    <div className={styles.humanView}>
+      <div className={styles.callLauncher}>
+        <div>
+          <p className={styles.callLauncherTitle}>{callActive ? `Live ${callMode === 'audio' ? 'audio' : 'video'} call with ${peerLabel}` : `Chat with ${peerLabel}`}</p>
+          <p className={styles.callLauncherSub}>
+            {callActive ? 'Keep the text thread open while you are on the call. End the session any time.' : 'Use the buttons to start a video or audio session when both of you are ready. The chat stays open the entire time.'}
+          </p>
+        </div>
+        <div className={styles.callButtons}>
+          <button
+            type="button"
+            className={styles.callButtonPrimary}
+            onClick={() => handleLaunchCall('video')}
+            disabled={!canLaunchCall || callActive}
+          >
+            Start video call
+          </button>
+          <button
+            type="button"
+            className={styles.callButtonSecondary}
+            onClick={() => handleLaunchCall('audio')}
+            disabled={!canLaunchCall || callActive}
+          >
+            Start audio call
+          </button>
+        </div>
       </div>
+      {callActive && session && currentUserId && (
+        <div className={styles.callSurface}>
+          <VideoArea session={session} currentUserId={currentUserId} onCallEnd={handleCallEnd} mediaMode={callMode ?? 'video'} />
+        </div>
+      )}
       <div className={styles.chatSection}>
         <ChatArea conversation={conversation} messages={messages} registerScrollContainer={registerScrollContainer} currentUserId={currentUserId} />
       </div>

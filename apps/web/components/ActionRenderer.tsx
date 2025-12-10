@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import type { Conversation, Session, Action, ProfileSummary, SamShowcaseProfile } from '../../../src/lib/db';
 import styles from './ConversationView.module.css';
 import ProfileCard from './ProfileCard';
@@ -10,8 +11,11 @@ interface ActionRendererProps {
   onOpenConversation?: (conversationId: string) => void;
   onCreateSession?: (conversation: Conversation, session: Session) => void;
   onSelectSlot?: (slotId: string) => void;
-  onConnectNow?: (userId: string) => void;
+  onConnectNow?: (profile: ProfileSummary) => void;
   onBookTime?: (profile: ProfileSummary) => void;
+  connectingProfileId?: string | null;
+  directoryProfiles?: ProfileSummary[];
+  currentUserId?: string;
 }
 
 const formatRate = (rate?: number) => (rate ? `$${rate.toFixed(2)}/min` : '');
@@ -38,23 +42,30 @@ const isSessionProposal = (
   return 'host' in payload && 'guest' in payload;
 };
 
-const ShowcaseProfile = ({ profile }: { profile: SamShowcaseProfile }) => (
-  <div className={styles.profileCard}>
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
-      <div>
-        <strong>{profile.name}</strong>
-        {profile.headline && <p className={styles.profileHeadline}>{profile.headline}</p>}
+const ShowcaseProfile = ({ profile }: { profile: SamShowcaseProfile }) => {
+  const presenceState = profile.status === 'away' ? 'idle' : 'active';
+  return (
+    <div className={styles.profileCard}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+        <div>
+          <strong>{profile.name}</strong>
+          {profile.headline && <p className={styles.profileHeadline}>{profile.headline}</p>}
+        </div>
+        {typeof profile.rate_per_minute === 'number' && profile.rate_per_minute > 0 && (
+          <span className={styles.profileHeadline}>{formatRate(profile.rate_per_minute)}</span>
+        )}
       </div>
-      {typeof profile.rate_per_minute === 'number' && profile.rate_per_minute > 0 && (
-        <span className={styles.profileHeadline}>{formatRate(profile.rate_per_minute)}</span>
+      {profile.expertise && profile.expertise.length > 0 && (
+        <p className={styles.profileHeadline}>Focus: {profile.expertise.join(' • ')}</p>
       )}
+      <StatusBadge
+        isOnline={profile.status === 'available'}
+        hasActiveSession={profile.status === 'booked'}
+        presenceState={presenceState}
+      />
     </div>
-    {profile.expertise && profile.expertise.length > 0 && (
-      <p className={styles.profileHeadline}>Focus: {profile.expertise.join(' • ')}</p>
-    )}
-    <StatusBadge isOnline={profile.status === 'available'} hasActiveSession={profile.status === 'booked'} />
-  </div>
-);
+  );
+};
 
 const OfferConnection = ({
   action,
@@ -87,33 +98,140 @@ export default function ActionRenderer({
   onCreateSession,
   onSelectSlot,
   onConnectNow,
-  onBookTime
+  onBookTime,
+  connectingProfileId,
+  directoryProfiles,
+  currentUserId
 }: ActionRendererProps) {
   if (!action) return null;
+
+  const directoryById = useMemo(() => {
+    const map = new Map<string, ProfileSummary>();
+    (directoryProfiles ?? []).forEach((profile) => {
+      if (!profile?.userId) {
+        return;
+      }
+      if (currentUserId && profile.userId === currentUserId) {
+        return;
+      }
+      map.set(profile.userId, profile);
+    });
+    return map;
+  }, [directoryProfiles, currentUserId]);
+
+  const profileDirectory = useMemo(() => {
+    const map = new Map<string, ProfileSummary>();
+    (directoryProfiles ?? []).forEach((profile) => {
+      if (!profile?.name) {
+        return;
+      }
+      if (currentUserId && profile.userId === currentUserId) {
+        return;
+      }
+      map.set(profile.name.trim().toLowerCase(), profile);
+    });
+    return map;
+  }, [directoryProfiles, currentUserId]);
 
   switch (action.type || action.actionType) {
     case 'show_profiles': {
       const profiles = (action as Extract<Action, { type: 'show_profiles' }>).profiles ?? [];
-      const legacyProfiles = profiles.filter(isLegacyProfile) as ProfileSummary[];
-      const showcaseProfiles = profiles.filter((profile) => !isLegacyProfile(profile)) as SamShowcaseProfile[];
+      const visibleProfiles = profiles.filter((profile) => {
+        if (!currentUserId) {
+          return true;
+        }
+        if (isLegacyProfile(profile)) {
+          return profile.userId !== currentUserId;
+        }
+        return true;
+      });
+      const legacyProfiles = visibleProfiles.filter(isLegacyProfile) as ProfileSummary[];
+      const showcaseProfiles = visibleProfiles.filter((profile) => !isLegacyProfile(profile)) as SamShowcaseProfile[];
+      const enforceOnlineOnly = (directoryProfiles?.length ?? 0) > 0;
+      const hydratedLegacyProfiles = legacyProfiles
+        .map((profile) => {
+          const normalizedName = profile.name?.trim().toLowerCase() ?? '';
+          const authoritative = (profile.userId && directoryById.get(profile.userId)) || profileDirectory.get(normalizedName);
+          if (!authoritative) {
+            return profile;
+          }
+          return {
+            ...profile,
+            isOnline: authoritative.isOnline ?? profile.isOnline,
+            hasActiveSession: authoritative.hasActiveSession ?? profile.hasActiveSession,
+            presenceState: authoritative.presenceState ?? profile.presenceState,
+            lastSeenAt: authoritative.lastSeenAt ?? profile.lastSeenAt
+          };
+        })
+        .filter((profile) => {
+          if (!enforceOnlineOnly) {
+            return true;
+          }
+          if (profile.userId && directoryById.has(profile.userId)) {
+            return true;
+          }
+          if (!profile.userId && profile.name) {
+            return profileDirectory.has(profile.name.trim().toLowerCase());
+          }
+          return false;
+        })
+        .filter((profile) => {
+          if (!enforceOnlineOnly) {
+            return true;
+          }
+          return Boolean(profile.isOnline && !profile.hasActiveSession);
+        });
+      const filteredShowcaseProfiles = showcaseProfiles.filter((profile) => {
+        if (!enforceOnlineOnly) {
+          return true;
+        }
+        return profile.status === 'available';
+      });
 
-      if (legacyProfiles.length > 0) {
+      if (hydratedLegacyProfiles.length > 0) {
         return (
           <div className={styles.profileScroller}>
-            {legacyProfiles.map((profile) => (
-              <ProfileCard key={profile.userId} profile={profile} onConnectNow={onConnectNow} onBookTime={onBookTime} />
+            {hydratedLegacyProfiles.map((profile) => (
+              <ProfileCard
+                key={profile.userId}
+                profile={profile}
+                onConnectNow={onConnectNow}
+                onBookTime={onBookTime}
+                isConnecting={connectingProfileId === profile.userId}
+              />
             ))}
           </div>
         );
       }
 
-      return (
-        <div className={styles.profileScroller}>
-          {showcaseProfiles.map((profile, index) => (
-            <ShowcaseProfile key={`${profile.name}-${index}`} profile={profile} />
-          ))}
-        </div>
-      );
+      if (filteredShowcaseProfiles.length > 0) {
+        return (
+          <div className={styles.profileScroller}>
+            {filteredShowcaseProfiles.map((profile, index) => {
+              const normalizedName = profile.name?.trim().toLowerCase() ?? '';
+              const hydrated = normalizedName ? profileDirectory.get(normalizedName) : undefined;
+              if (hydrated) {
+                return (
+                  <ProfileCard
+                    key={hydrated.userId ?? `${normalizedName}-${index}`}
+                    profile={hydrated}
+                    onConnectNow={onConnectNow}
+                    onBookTime={onBookTime}
+                    isConnecting={connectingProfileId === hydrated.userId}
+                  />
+                );
+              }
+              return <ShowcaseProfile key={`${profile.name}-${index}`} profile={profile} />;
+            })}
+          </div>
+        );
+      }
+
+      if (enforceOnlineOnly) {
+        return <div className={styles.noticeBanner}>No members are live right now. Try again in a few minutes.</div>;
+      }
+
+      return null;
     }
     case 'offer_connection':
       return <OfferConnection action={action as Extract<Action, { type: 'offer_connection' }>} onOpenConversation={onOpenConversation} />;
