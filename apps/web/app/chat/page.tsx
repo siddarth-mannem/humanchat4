@@ -1,16 +1,16 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import clsx from 'clsx';
 import ConversationSidebar from '../../components/ConversationSidebar';
 import ConversationView from '../../components/ConversationView';
 import MobileBottomNav, { type MobileNavRoute } from '../../components/MobileBottomNav';
 import ProfilePanel from '../../components/ProfilePanel';
 import UserSettingsMenu from '../../components/UserSettingsMenu';
-import RequestCenter from '../../components/RequestCenter';
 import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { useConversationData } from '../../hooks/useConversationData';
 import { useManagedRequests } from '../../hooks/useManagedRequests';
+import { fetchUserProfile, type UserProfile } from '../../services/profileApi';
 
 export default function ChatPage() {
   const [activeConversationId, setActiveConversationId] = useState<string | undefined>();
@@ -18,18 +18,19 @@ export default function ChatPage() {
   const [mobilePane, setMobilePane] = useState<'list' | 'conversation'>('list');
   const [activeNav, setActiveNav] = useState<MobileNavRoute>('home');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
-  const [requestCenterOpen, setRequestCenterOpen] = useState(false);
   const { isMobile, isTablet } = useBreakpoint();
   const { conversations, unreadTotal } = useConversationData();
   const {
     requests,
     loading: requestsLoading,
     error: requestsError,
-    pendingCount,
-    refresh: refreshRequests,
     updateStatus,
     updatingId
   } = useManagedRequests();
+  const fetchedRequestersRef = useRef<Set<string>>(new Set());
+  const [requesterProfiles, setRequesterProfiles] = useState<Record<string, Pick<UserProfile, 'name' | 'headline' | 'avatarUrl'>>>(
+    {}
+  );
 
   const samConversationId = useMemo(() => {
     return conversations.find((entry) => entry.conversation.type === 'sam')?.conversation.conversationId ?? 'sam-concierge';
@@ -87,6 +88,60 @@ export default function ChatPage() {
     }
   };
 
+  useEffect(() => {
+    const pendingIds = requests
+      .filter((request) => request.status === 'pending')
+      .map((request) => request.requesterId)
+      .filter((requesterId) => !fetchedRequestersRef.current.has(requesterId));
+    if (pendingIds.length === 0) {
+      return undefined;
+    }
+
+    let cancelled = false;
+    const hydrate = async () => {
+      const results = await Promise.all(
+        pendingIds.map(async (requesterId) => {
+          try {
+            return await fetchUserProfile(requesterId);
+          } catch (error) {
+            console.warn('Failed to load requester profile', { requesterId, error });
+            return null;
+          }
+        })
+      );
+      if (cancelled) {
+        return;
+      }
+      setRequesterProfiles((prev) => {
+        const next = { ...prev };
+        results.forEach((profile) => {
+          if (profile) {
+            next[profile.id] = {
+              name: profile.name,
+              headline: profile.headline,
+              avatarUrl: profile.avatarUrl
+            };
+            fetchedRequestersRef.current.add(profile.id);
+          }
+        });
+        return next;
+      });
+    };
+
+    void hydrate();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [requests]);
+
+  const handleRequestAction = useCallback(
+    (requestId: string, status: 'pending' | 'approved' | 'declined') => {
+      return updateStatus(requestId, status);
+    },
+    [updateStatus]
+  );
+
   return (
     <main className="flex h-screen min-h-screen flex-col overflow-hidden bg-midnight text-white">
       <header className="sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b border-white/10 bg-midnight px-4 py-3 text-xs uppercase tracking-[0.3em] text-white/60">
@@ -100,13 +155,6 @@ export default function ChatPage() {
             {sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           </button>
         )}
-        <button
-          type="button"
-          className="rounded-full border border-white/20 px-3 py-1 text-[11px] normal-case tracking-normal text-white hover:border-white/40"
-          onClick={() => setRequestCenterOpen(true)}
-        >
-          {pendingCount > 0 ? `${pendingCount} pending requests` : 'Managed queue'}
-        </button>
         <div className="ml-auto">
           <UserSettingsMenu />
         </div>
@@ -119,6 +167,12 @@ export default function ChatPage() {
               activeConversationId={activeConversationId}
               onSelectConversation={handleSelectConversation}
               collapsed={isTablet && sidebarCollapsed}
+              requests={requests}
+              requestProfiles={requesterProfiles}
+              requestLoading={requestsLoading}
+              requestError={requestsError}
+              onRequestAction={handleRequestAction}
+              requestActionPendingId={updatingId}
             />
           </div>
         )}
@@ -139,6 +193,12 @@ export default function ChatPage() {
               <ConversationSidebar
                 activeConversationId={activeConversationId}
                 onSelectConversation={handleSelectConversation}
+                requests={requests}
+                requestProfiles={requesterProfiles}
+                requestLoading={requestsLoading}
+                requestError={requestsError}
+                onRequestAction={handleRequestAction}
+                requestActionPendingId={updatingId}
               />
             )}
             {(activeNav === 'sam' || (activeNav === 'home' && mobilePane === 'conversation')) && (
@@ -157,16 +217,6 @@ export default function ChatPage() {
         )}
       </div>
       {isMobile && <MobileBottomNav active={activeNav} onChange={handleNavChange} hasUnread={unreadTotal > 0} />}
-      <RequestCenter
-        open={requestCenterOpen}
-        requests={requests}
-        loading={requestsLoading}
-        error={requestsError}
-        updatingId={updatingId}
-        onClose={() => setRequestCenterOpen(false)}
-        onRefresh={refreshRequests}
-        onUpdateStatus={updateStatus}
-      />
     </main>
   );
 }

@@ -1,22 +1,43 @@
 'use client';
 
 import clsx from 'clsx';
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import ConversationListItem from './ConversationListItem';
 import styles from './ConversationSidebar.module.css';
 import { useConversationData } from '../hooks/useConversationData';
 import { useArchivedConversations } from '../hooks/useArchivedConversations';
+import type { ManagedRequest } from '../../../src/lib/db';
 
 interface ConversationSidebarProps {
   activeConversationId?: string;
   onSelectConversation?: (conversationId: string) => void;
   collapsed?: boolean;
+  requests?: ManagedRequest[];
+  requestProfiles?: Record<string, { name?: string; headline?: string | null; avatarUrl?: string | null }>;
+  requestLoading?: boolean;
+  requestError?: string | null;
+  onRequestAction?: (requestId: string, status: ManagedRequest['status']) => Promise<unknown> | void;
+  requestActionPendingId?: string | null;
 }
+
+const formatRelativeTime = (timestamp: number): string => {
+  const diff = Date.now() - timestamp;
+  if (diff < 60000) return 'just now';
+  if (diff < 3600000) return `${Math.round(diff / 60000)}m ago`;
+  if (diff < 86400000) return `${Math.round(diff / 3600000)}h ago`;
+  return new Date(timestamp).toLocaleString();
+};
 
 export default function ConversationSidebar({
   activeConversationId,
   onSelectConversation,
-  collapsed
+  collapsed,
+  requests,
+  requestProfiles,
+  requestLoading,
+  requestError,
+  onRequestAction,
+  requestActionPendingId
 }: ConversationSidebarProps) {
   const { conversations, hasHumanConversations, error, reload, refreshing } = useConversationData();
   const { archive, unarchive, archivedIds, isArchived } = useArchivedConversations();
@@ -24,6 +45,10 @@ export default function ConversationSidebar({
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const touchStart = useRef<number>(0);
   const pulling = useRef(false);
+  const pendingRequests = useMemo(() => {
+    return (requests ?? []).filter((request) => request.status === 'pending');
+  }, [requests]);
+  const showRequestSection = pendingRequests.length > 0 || Boolean(requestLoading) || Boolean(requestError);
 
   const handleSelect = (conversationId: string) => {
     onSelectConversation?.(conversationId);
@@ -92,6 +117,84 @@ export default function ConversationSidebar({
             />
           )}
         </ul>
+
+        {showRequestSection && (
+          <>
+            <p className={styles.sectionTitle}>Requests</p>
+            {pendingRequests.length === 0 ? (
+              <div className={styles.requestNotice}>
+                {requestLoading ? 'Loading requests…' : requestError ?? 'No pending requests'}
+              </div>
+            ) : (
+              <ul className={clsx(styles.list, styles.requestList)}>
+                {pendingRequests.map((request) => {
+                  const profile = requestProfiles?.[request.requesterId];
+                  const displayName = profile?.name ?? 'New request';
+                  const subtitle = profile?.headline ?? 'Waiting for your response';
+                  const initials = displayName
+                    .split(' ')
+                    .filter(Boolean)
+                    .slice(0, 2)
+                    .map((segment) => segment[0]?.toUpperCase() ?? '')
+                    .join('') || 'RQ';
+                  const isUpdating = requestActionPendingId === request.requestId;
+
+                  const handleAction = (status: ManagedRequest['status']) => {
+                    if (!onRequestAction) {
+                      return;
+                    }
+                    const outcome = onRequestAction(request.requestId, status);
+                    if (outcome && typeof (outcome as Promise<unknown>).catch === 'function') {
+                      (outcome as Promise<unknown>).catch((actionError) => {
+                        console.warn('Request action failed', actionError);
+                      });
+                    }
+                  };
+
+                  return (
+                    <li key={request.requestId} className={styles.requestItem}>
+                      <div className={styles.requestAvatar}>
+                        {profile?.avatarUrl ? (
+                          <img src={profile.avatarUrl} alt={displayName} />
+                        ) : (
+                          initials
+                        )}
+                      </div>
+                      <div className={styles.requestBody}>
+                        <div className={styles.requestHeader}>
+                          <div>
+                            <p className={styles.requestName}>{displayName}</p>
+                            <p className={styles.requestMeta}>{subtitle}</p>
+                          </div>
+                          <span className={styles.requestTimestamp}>{formatRelativeTime(request.createdAt)}</span>
+                        </div>
+                        {request.message && <p className={styles.requestMessage}>{request.message}</p>}
+                        <div className={styles.requestActions}>
+                          <button
+                            type="button"
+                            className={styles.requestButton}
+                            onClick={() => handleAction('declined')}
+                            disabled={isUpdating}
+                          >
+                            {isUpdating ? 'Updating…' : 'Decline'}
+                          </button>
+                          <button
+                            type="button"
+                            className={clsx(styles.requestButton, styles.requestButtonPrimary)}
+                            onClick={() => handleAction('approved')}
+                            disabled={isUpdating}
+                          >
+                            {isUpdating ? 'Processing…' : 'Accept'}
+                          </button>
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </>
+        )}
 
         <p className={styles.sectionTitle}>Humans</p>
         <ul className={styles.list}>

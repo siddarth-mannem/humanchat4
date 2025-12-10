@@ -232,6 +232,126 @@
   cursor: pointer;
 }
 
+.requestList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 16px 8px;
+}
+
+.requestItem {
+  display: flex;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.requestAvatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(99, 102, 241, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: #f8fafc;
+  overflow: hidden;
+}
+
+.requestAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.requestBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.requestHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.requestName {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.requestMeta {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: rgba(148, 163, 184, 0.9);
+}
+
+.requestTimestamp {
+  font-size: 12px;
+  color: rgba(148, 163, 184, 0.85);
+  white-space: nowrap;
+}
+
+.requestMessage {
+  margin: 0;
+  font-size: 13px;
+  color: #e2e8f0;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.requestActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.requestButton {
+  flex: 1;
+  min-width: 100px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: transparent;
+  color: #f8fafc;
+  font-size: 13px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.requestButtonPrimary {
+  background: linear-gradient(135deg, #a855f7, #6366f1);
+  border: none;
+  color: #020617;
+  font-weight: 600;
+}
+
+.requestButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.requestNotice {
+  margin: 0 24px 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px dashed rgba(148, 163, 184, 0.4);
+  color: rgba(248, 250, 252, 0.8);
+  font-size: 13px;
+  background: rgba(15, 23, 42, 0.4);
+}
+
 @media (max-width: 640px) {
   .sidebar {
     width: 100%;
@@ -247,5 +367,13 @@
   .samItem {
     margin: 0 12px;
     border-radius: 12px;
+  }
+
+  .requestList {
+    padding: 0 12px 8px;
+  }
+
+  .requestItem {
+    flex-direction: column;
   }
 }
