@@ -48,15 +48,33 @@ const cookieConfig = (maxAge: number) => ({
   maxAge
 });
 
-const cookieClearVariants = cookieBase.domain
-  ? [
-      { ...cookieBase, maxAge: 0 },
-      { ...cookieBase, domain: undefined, maxAge: 0 }
-    ]
-  : [{ ...cookieBase, maxAge: 0 }];
+const buildCookieClearVariants = () => {
+  const variants: Array<Record<string, unknown>> = [];
+  const appendVariant = (options: Record<string, unknown>) => {
+    variants.push({
+      ...options,
+      maxAge: 0,
+      expires: new Date(0)
+    });
+  };
+
+  if (cookieBase.domain) {
+    appendVariant(cookieBase);
+    if (cookieBase.domain.startsWith('.')) {
+      appendVariant({ ...cookieBase, domain: cookieBase.domain.slice(1) });
+    } else {
+      appendVariant({ ...cookieBase, domain: `.${cookieBase.domain}` });
+    }
+  }
+
+  appendVariant({ ...cookieBase, domain: undefined });
+
+  return variants;
+};
 
 const clearCookie = (res: Response, name: string): void => {
-  cookieClearVariants.forEach((options) => {
+  const variants = buildCookieClearVariants();
+  variants.forEach((options) => {
     res.clearCookie(name, options);
   });
 };
