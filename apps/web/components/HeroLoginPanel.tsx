@@ -6,6 +6,7 @@ import { GoogleAuthProvider, sendSignInLinkToEmail, signInWithPopup } from 'fire
 
 import { firebaseAuth } from '../lib/firebaseClient';
 import { useAuthIdentity } from '../hooks/useAuthIdentity';
+import LogoutButton from './LogoutButton';
 
 export interface HeroLoginPanelHandle {
   focusEmailField: () => void;
@@ -108,6 +109,7 @@ const HeroLoginPanel = (_: HeroLoginPanelProps, ref: ForwardedRef<HeroLoginPanel
           >
             Review settings
           </button>
+          <LogoutButton className="inline-flex items-center justify-center rounded-2xl border border-white/30 px-5 py-2 text-sm font-semibold text-white transition hover:border-white" />
         </div>
       </section>
     );

@@ -56,13 +56,6 @@ export default function HeroExperience() {
           >
             Start chatting with Sam
           </button>
-          <button
-            type="button"
-            onClick={() => router.push('/signup')}
-            className="rounded-full border border-white/30 px-6 py-3 text-sm font-semibold text-white transition hover:border-white"
-          >
-            Tell Sam what you need
-          </button>
         </div>
 
         <p className="text-xs uppercase tracking-[0.3em] text-white/60">

@@ -121,10 +121,10 @@ export default function UserSettingsMenu() {
             </>
           ) : (
             <Link
-              href="/signup"
+              href="/"
               className="block rounded-xl border border-white/15 px-3 py-2 text-center text-white/90 transition hover:border-white"
             >
-              Sign in or create account
+              Go to login panel
             </Link>
           )}
         </div>
