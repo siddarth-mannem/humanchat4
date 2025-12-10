@@ -24,6 +24,7 @@ SKIP_BUILD=${SKIP_BUILD:-0}
 CLOUD_SQL_INSTANCES=${CLOUD_SQL_INSTANCES:-"loyal-env-475400-u0:us-central1:users"}
 
 # Set environment-specific configurations
+# command: DEPLOY_ENV=development ./scripts/deploy-cloud-run.sh env-dev-cloudrun.yaml
 if [[ "${DEPLOY_ENV}" == "development" ]]; then
   SERVICE_NAME=${SERVICE_NAME:-"humanchat-api-dev"}
   NODE_ENV="development"
@@ -34,7 +35,7 @@ if [[ "${DEPLOY_ENV}" == "development" ]]; then
   CORS_ORIGIN="http://localhost:3000,https://humanchat4.vercel.app,https://humanchat4-git-develop-sids-projects-2126eccc.vercel.app,https://humanchat4-j72fdss8d-sids-projects-2126eccc.vercel.app"
   API_BASE_URL="https://humanchat-api-dev-37305898543.us-central1.run.app"
   APP_URL="https://humanchat4.vercel.app"
-else
+else # command: DEPLOY_ENV=production ./scripts/deploy-cloud-run.sh env-prod-cloudrun.yaml
   SERVICE_NAME=${SERVICE_NAME:-"humanchat-api"}
   NODE_ENV="production"
   MIN_INSTANCES=0
@@ -62,8 +63,8 @@ echo "  Image: ${IMAGE}"
 echo ""
 
 if [[ "${SKIP_BUILD}" != "1" ]]; then
-  echo "🔨 Building Docker image..."
-  docker build -t "${IMAGE}" .
+  echo "🔨 Building Docker image for linux/amd64..."
+  docker build --platform linux/amd64 -t "${IMAGE}" .
   
   echo "📤 Pushing image to Container Registry..."
   docker push "${IMAGE}"

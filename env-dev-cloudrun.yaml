@@ -1,0 +1,5 @@
+NODE_ENV: "development"
+DEPLOY_ENV: "development"
+CORS_ORIGIN: "http://localhost:3000,https://humanchat4.vercel.app"
+API_BASE_URL: "https://humanchat-api-dev-37305898543.us-central1.run.app"
+APP_URL: "https://humanchat4.vercel.app"
