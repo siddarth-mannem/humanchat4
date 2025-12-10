@@ -55,6 +55,8 @@ export default function SessionView({ conversation, session, invite, messages, r
   const isInProgress = session?.status === 'in_progress';
   const isComplete = session?.status === 'complete';
   const isScheduled = !isInProgress && !isComplete && (session?.startTime ?? 0) > now;
+  const shouldShowInvitePanel = Boolean(invite && (!session || session.status !== 'in_progress'));
+  const invitePanel = shouldShowInvitePanel && invite ? <InstantInvitePanel invite={invite} currentUserId={currentUserId} /> : null;
   const peerLabel = useMemo(() => {
     const peer = conversation.participants.find((participant) => participant !== currentUserId);
     if (!peer) {
@@ -69,10 +71,10 @@ export default function SessionView({ conversation, session, invite, messages, r
     setShowDonationModal(false);
   }, [conversation.conversationId]);
 
-  if (!session && invite) {
+  if (!session) {
     return (
       <div className={styles.sessionShell}>
-        <InstantInvitePanel invite={invite} currentUserId={currentUserId} />
+        {invitePanel}
         <VirtualMessageList messages={orderedMessages} className={styles.messageList} registerScrollContainer={registerScrollContainer}>
           {(message) => (
             <MessageBubble message={message} variant={isUserMessage(message, conversation) ? 'user' : 'sam'} />
@@ -85,15 +87,17 @@ export default function SessionView({ conversation, session, invite, messages, r
   if (isScheduled) {
     return (
       <div className={styles.countdown}>
+        {invitePanel}
         <strong>{formatCountdown(session!.startTime)}</strong>
         <p>Session starts in</p>
       </div>
     );
   }
 
-  if (isComplete || !session) {
+  if (isComplete) {
     return (
       <div className={styles.archivedView}>
+        {invitePanel}
         <div className={styles.archivedNotice}>This session has ended. Messages are read-only.</div>
         <VirtualMessageList messages={orderedMessages} className={styles.messageList} registerScrollContainer={registerScrollContainer}>
           {(message) => (
@@ -107,7 +111,7 @@ export default function SessionView({ conversation, session, invite, messages, r
     );
   }
 
-  if (!session || !currentUserId) {
+  if (!currentUserId) {
     return <div className={styles.error}>Sign in again to join this session.</div>;
   }
 
@@ -136,6 +140,7 @@ export default function SessionView({ conversation, session, invite, messages, r
 
   return (
     <div className={styles.humanView}>
+      {invitePanel}
       <div className={styles.callLauncher}>
         <div>
           <p className={styles.callLauncherTitle}>{callActive ? `Live ${callMode === 'audio' ? 'audio' : 'video'} call with ${peerLabel}` : `Chat with ${peerLabel}`}</p>
