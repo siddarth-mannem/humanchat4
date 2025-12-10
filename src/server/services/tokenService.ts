@@ -48,6 +48,19 @@ const cookieConfig = (maxAge: number) => ({
   maxAge
 });
 
+const cookieClearVariants = cookieBase.domain
+  ? [
+      { ...cookieBase, maxAge: 0 },
+      { ...cookieBase, domain: undefined, maxAge: 0 }
+    ]
+  : [{ ...cookieBase, maxAge: 0 }];
+
+const clearCookie = (res: Response, name: string): void => {
+  cookieClearVariants.forEach((options) => {
+    res.clearCookie(name, options);
+  });
+};
+
 const hashToken = (token: string): string =>
   crypto.createHash('sha256').update(token).digest('hex');
 
@@ -135,8 +148,8 @@ export const issueAuthCookies = async (
 };
 
 export const clearAuthCookies = async (res: Response, refreshToken?: string): Promise<void> => {
-  res.clearCookie(ACCESS_COOKIE, cookieBase);
-  res.clearCookie(REFRESH_COOKIE, cookieBase);
+  clearCookie(res, ACCESS_COOKIE);
+  clearCookie(res, REFRESH_COOKIE);
   if (refreshToken) {
     await revokeRefreshToken(refreshToken);
   }
