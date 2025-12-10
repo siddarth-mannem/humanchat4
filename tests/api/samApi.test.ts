@@ -1,4 +1,4 @@
-import { enforceConciseText } from '../../src/server/services/samAPI';
+import { enforceConciseText } from '../../src/server/services/cortexClient';
 
 describe('enforceConciseText', () => {
   it('returns the original text when already concise', () => {

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { addConversationMessage, ensureSamConversation } from './conversationService.js';
-import { sendToSam } from './samAPI.js';
+import { sendToSam } from './cortexClient.js';
 import { SamResponse, SamChatResult } from '../types/index.js';
 import { searchUsers } from './userService.js';
 import { logRequestedPersonInterest } from './requestedPeopleService.js';
@@ -118,7 +118,11 @@ const maybeHandleRequestedPerson = async (userId: string, message: string): Prom
   };
 };
 
-export const handleSamChat = async (conversationId: string, userId: string, payload: SamPayload): Promise<SamChatResult> => {
+export const handleSamChat = async (
+  conversationId: string, 
+  userId: string, 
+  payload: SamPayload
+): Promise<SamChatResult> => {
   const parsed = SamPayloadSchema.parse(payload);
 
   let activeConversationId = conversationId;
