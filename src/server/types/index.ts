@@ -83,9 +83,9 @@ export interface SessionPayment {
 export interface Conversation {
   id: string;
   type: ConversationType;
+  participants: string[];
   linked_session_id: string | null;
-  last_activity: number; // bigint from database
-  unread_count?: number;
+  last_activity: string;
   created_at: string;
 }
 
