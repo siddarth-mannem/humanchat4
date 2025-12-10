@@ -11,7 +11,9 @@ export interface HeroLoginPanelHandle {
   focusEmailField: () => void;
 }
 
-const HeroLoginPanel = (_: unknown, ref: ForwardedRef<HeroLoginPanelHandle>) => {
+interface HeroLoginPanelProps {}
+
+const HeroLoginPanel = (_: HeroLoginPanelProps, ref: ForwardedRef<HeroLoginPanelHandle>) => {
   const router = useRouter();
   const { identity } = useAuthIdentity();
   const auth = firebaseAuth;
@@ -166,4 +168,4 @@ const HeroLoginPanel = (_: unknown, ref: ForwardedRef<HeroLoginPanelHandle>) => 
   );
 };
 
-export default forwardRef<HeroLoginPanelHandle, Record<string, never>>(HeroLoginPanel);
+export default forwardRef<HeroLoginPanelHandle, HeroLoginPanelProps>(HeroLoginPanel);
