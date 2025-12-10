@@ -51,23 +51,32 @@ export default function FirebaseSessionBridge() {
     };
 
     const syncSession = async (idToken: string | null) => {
+      console.log('[FirebaseSessionBridge] syncSession called', {
+        hasToken: !!idToken,
+        inflight: inflight.current,
+        tokenMatch: lastToken.current === idToken
+      });
+      
       if (!idToken || inflight.current || lastToken.current === idToken) {
         return;
       }
       inflight.current = true;
       try {
+        console.log('[FirebaseSessionBridge] Sending token to backend');
         const response = await fetch(`${API_BASE_URL}/api/auth/firebase`, {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ idToken })
         });
+        console.log('[FirebaseSessionBridge] Backend response:', response.status);
         if (response.ok) {
           lastToken.current = idToken;
           notifyAuthUpdated();
         } else {
           lastToken.current = null;
-          console.error('Failed to bridge Firebase session');
+          const errorData = await response.json().catch(() => ({}));
+          console.error('Failed to bridge Firebase session', response.status, errorData);
         }
       } catch (error) {
         lastToken.current = null;

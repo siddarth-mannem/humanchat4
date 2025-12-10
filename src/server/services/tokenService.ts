@@ -33,12 +33,15 @@ const getUserIdentity = async (userId: string): Promise<UserIdentity> => {
 };
 
 const isProd = env.nodeEnv === 'production';
-const sameSiteMode: 'lax' | 'none' = isProd ? 'none' : 'lax';
+// Use 'none' for cross-origin (Vercel <-> Cloud Run, localhost <-> Cloud Run)
+// Only use 'lax' for true local development (localhost frontend + localhost backend)
+const isLocalDev = env.apiBaseUrl?.includes('localhost') || env.appUrl?.includes('localhost');
+const sameSiteMode: 'lax' | 'none' = isLocalDev ? 'lax' : 'none';
 
 const cookieConfig = (maxAge: number) => ({
   httpOnly: true,
   sameSite: sameSiteMode,
-  secure: isProd || sameSiteMode === 'none',
+  secure: sameSiteMode === 'none' || isProd,
   maxAge,
   ...(env.cookieDomain ? { domain: env.cookieDomain } : {})
 });
