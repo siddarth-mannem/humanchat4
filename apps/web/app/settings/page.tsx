@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import LogoutButton from '../../components/LogoutButton';
@@ -24,7 +25,7 @@ const formatCurrency = (value: string): string => {
   return `$${parsed.toFixed(parsed % 1 === 0 ? 0 : 2)}`;
 };
 
-export default function SettingsPage() {
+const SettingsContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const settingsState = useSettings();
@@ -492,5 +493,19 @@ export default function SettingsPage() {
         </section>
       )}
     </main>
+  );
+};
+
+export default function SettingsPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center bg-midnight text-white">
+          <p className="text-sm text-white/70">Loading settings…</p>
+        </main>
+      }
+    >
+      <SettingsContent />
+    </Suspense>
   );
 }
