@@ -1,5 +1,5 @@
 import { ApiError } from '../errors/ApiError.js';
-import { addConversationMessage, ensureHumanConversation } from './conversationService.js';
+import { addConversationMessage, attachParticipantLabels, ensureHumanConversation } from './conversationService.js';
 import { createSessionRecord, getSessionById, updateSessionStatus } from './sessionService.js';
 import { getUserById } from './userService.js';
 import type { Conversation, InstantInvite, PaymentMode, Session, User } from '../types/index.js';
@@ -149,9 +149,11 @@ export const initiateInstantConnection = async (
         last_activity: existingSession.updated_at ?? conversation.last_activity
       };
 
+      const conversationWithLabels = await attachParticipantLabels(hydratedConversation);
+
       return {
         flow: 'session',
-        conversation: hydratedConversation,
+        conversation: conversationWithLabels,
         session: existingSession
       };
     }
@@ -176,9 +178,11 @@ export const initiateInstantConnection = async (
         inviteId: invite.id
       });
 
+      const conversationWithLabels = await attachParticipantLabels(hydratedConversation);
+
       return {
         flow: 'invite',
-        conversation: hydratedConversation,
+        conversation: conversationWithLabels,
         invite
       };
     }
@@ -211,9 +215,11 @@ export const initiateInstantConnection = async (
       paymentMode
     });
 
+    const conversationWithLabels = await attachParticipantLabels(hydratedConversation);
+
     return {
       flow: 'session',
-      conversation: hydratedConversation,
+      conversation: conversationWithLabels,
       session
     };
   } catch (error) {

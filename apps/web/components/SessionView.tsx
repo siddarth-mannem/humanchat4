@@ -57,8 +57,11 @@ export default function SessionView({ conversation, session, invite, messages, r
   const isScheduled = !isInProgress && !isComplete && (session?.startTime ?? 0) > now;
   const peerLabel = useMemo(() => {
     const peer = conversation.participants.find((participant) => participant !== currentUserId);
-    return peer ?? 'Session participant';
-  }, [conversation.participants, currentUserId]);
+    if (!peer) {
+      return 'Session participant';
+    }
+    return conversation.participantLabels?.[peer] ?? peer;
+  }, [conversation.participants, conversation.participantLabels, currentUserId]);
 
   useEffect(() => {
     setCallMode(null);

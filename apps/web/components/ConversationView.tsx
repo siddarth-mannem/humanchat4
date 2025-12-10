@@ -32,6 +32,11 @@ export default function ConversationView({ activeConversationId, onSelectConvers
   const [requestProfile, setRequestProfile] = useState<ProfileSummary | null>(null);
   const [connectError, setConnectError] = useState<string | null>(null);
   const [connectingProfileId, setConnectingProfileId] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    return sessionStatusManager.onCurrentUserChange((userId) => setCurrentUserId(userId));
+  }, []);
 
   const registerScrollContainer = useCallback(
     (node: HTMLDivElement | null) => {
@@ -91,11 +96,24 @@ export default function ConversationView({ activeConversationId, onSelectConvers
         subtitle: 'It may have been removed locally. Try syncing again.'
       };
     }
+    const resolveLabel = (participantId: string): string => {
+      return conversation.participantLabels?.[participantId] ?? participantId;
+    };
+
+    const orderedLabels = conversation.participants.map(resolveLabel);
+    const peerLabels = currentUserId
+      ? conversation.participants
+          .filter((participantId) => participantId !== currentUserId)
+          .map(resolveLabel)
+      : orderedLabels;
+
+    const humanTitle = peerLabels.length > 0 ? peerLabels.join(', ') : orderedLabels.join(', ');
+
     return {
-      title: conversation.type === 'sam' ? 'Sam Concierge' : conversation.participants.join(', '),
+      title: conversation.type === 'sam' ? 'Sam Concierge' : humanTitle,
       subtitle: conversation.type === 'sam' ? 'AI Concierge' : 'Direct chat'
     };
-  }, [activeConversationId, conversation]);
+  }, [activeConversationId, conversation, currentUserId]);
 
   const handleConnectNow = useCallback(
     async (profile: ProfileSummary) => {

@@ -223,14 +223,14 @@ export default function SamChatView({
   const fallbackProfiles = useMemo(() => {
     return conversation.participants
       .filter((participant) => participant !== 'sam' && participant !== localUserId)
-      .map((name) => ({
-        name,
+      .map((participantId) => ({
+        name: conversation.participantLabels?.[participantId] ?? participantId,
         headline: 'HumanChat expert',
         status: 'available' as const,
         expertise: [],
         rate_per_minute: 0
       }));
-  }, [conversation.participants, localUserId]);
+  }, [conversation.participants, conversation.participantLabels, localUserId]);
 
   const loadOnlineProfiles = useCallback(async (): Promise<ProfileSummary[]> => {
     try {

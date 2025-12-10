@@ -33,7 +33,15 @@ const sortParticipants = (first: string, second: string): [string, string] => {
 
 export const listConversations = async (userId: string): Promise<Conversation[]> => {
   const result = await query<Conversation>(
-    `SELECT * FROM conversations WHERE $1 = ANY(participants) ORDER BY last_activity DESC`,
+    `SELECT c.*,
+            (
+              SELECT json_object_agg(u.id::text, COALESCE(NULLIF(TRIM(u.name), ''), 'HumanChat member'))
+              FROM users u
+              WHERE u.id = ANY(c.participants)
+            ) AS participant_display_map
+       FROM conversations c
+      WHERE $1 = ANY(c.participants)
+      ORDER BY c.last_activity DESC`,
     [userId]
   );
   return result.rows;
@@ -160,4 +168,36 @@ export const ensureHumanConversation = async (userA: string, userB: string): Pro
   );
 
   return insert.rows[0];
+};
+
+const buildParticipantDisplayMap = async (participantIds: string[]): Promise<Record<string, string>> => {
+  if (!participantIds || participantIds.length === 0) {
+    return {};
+  }
+  const lookup = await query<{ id: string; name: string | null }>(
+    `SELECT id::text AS id,
+            COALESCE(NULLIF(TRIM(name), ''), 'HumanChat member') AS name
+       FROM users
+      WHERE id = ANY($1::uuid[])`,
+    [participantIds]
+  );
+
+  return lookup.rows.reduce<Record<string, string>>((map, row) => {
+    if (row.id) {
+      map[row.id] = row.name ?? 'HumanChat member';
+    }
+    return map;
+  }, {});
+};
+
+export const attachParticipantLabels = async (conversation: Conversation): Promise<Conversation> => {
+  if (conversation.participant_display_map && Object.keys(conversation.participant_display_map).length > 0) {
+    return conversation;
+  }
+
+  const map = await buildParticipantDisplayMap(conversation.participants ?? []);
+  return {
+    ...conversation,
+    participant_display_map: map
+  };
 };

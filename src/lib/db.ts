@@ -121,6 +121,7 @@ export interface Conversation {
   conversationId: string;
   type: ConversationType;
   participants: string[];
+  participantLabels?: Record<string, string>;
   linkedSessionId?: string;
   lastActivity: number;
   unreadCount: number;

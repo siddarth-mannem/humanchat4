@@ -4,7 +4,7 @@ import { redis } from '../db/redis.js';
 import { ApiError } from '../errors/ApiError.js';
 import type { Conversation, InstantInvite, Session, User } from '../types/index.js';
 import { createSessionRecord } from './sessionService.js';
-import { addConversationMessage } from './conversationService.js';
+import { addConversationMessage, attachParticipantLabels } from './conversationService.js';
 import { logger } from '../utils/logger.js';
 
 const INVITE_TTL_MINUTES = 5;
@@ -66,7 +66,9 @@ const ensureNotExpired = async (client: PoolClient, invite: InstantInvite): Prom
   throw new ApiError(410, 'INVITE_EXPIRED', 'That invitation expired. Ask them to retry.');
 };
 
-const mapConversationForNotification = (conversation: Conversation) => conversation;
+const mapConversationForNotification = async (conversation: Conversation): Promise<Conversation> => {
+  return attachParticipantLabels(conversation);
+};
 
 const findRecentPendingInvite = async (
   conversationId: string,
@@ -116,7 +118,7 @@ export const createInstantInvite = async (
     });
   }
 
-  const conversationPayload = mapConversationForNotification(conversation);
+  const conversationPayload = await mapConversationForNotification(conversation);
   await publishInviteEvent(invite, 'pending', [
     {
       userId: target.id,
@@ -190,18 +192,23 @@ export const acceptInstantInvite = async (
     });
   }
 
+  const enrichedConversation = await mapConversationForNotification(result.conversation);
+
   await publishInviteEvent(result.invite, 'accepted', [
     {
       userId: result.invite.requester_user_id,
-      extra: { conversation: mapConversationForNotification(result.conversation), session: result.session }
+      extra: { conversation: enrichedConversation, session: result.session }
     },
     {
       userId: result.invite.target_user_id,
-      extra: { conversation: mapConversationForNotification(result.conversation), session: result.session }
+      extra: { conversation: enrichedConversation, session: result.session }
     }
   ]);
 
-  return result;
+  return {
+    ...result,
+    conversation: enrichedConversation
+  };
 };
 
 export const declineInstantInvite = async (inviteId: string, targetUserId: string): Promise<InstantInvite> => {

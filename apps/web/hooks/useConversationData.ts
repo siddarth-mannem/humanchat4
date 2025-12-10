@@ -31,6 +31,7 @@ export const SAM_FALLBACK_CONVERSATION: Conversation = {
   conversationId: SAM_CONCIERGE_ID,
   type: 'sam',
   participants: ['sam'],
+  participantLabels: { sam: 'Sam Concierge' },
   lastActivity: Date.now(),
   unreadCount: 0
 };
@@ -82,6 +83,18 @@ const buildStatus = (session?: Session | null): 'active' | 'scheduled' | undefin
 
 const ensureSamConversation = (collection: Conversation[]): Conversation => {
   return collection.find((item) => item.type === 'sam') ?? SAM_FALLBACK_CONVERSATION;
+};
+
+const buildParticipantNames = (conversation: Conversation): string[] => {
+  const labels = conversation.participants
+    .map((id) => conversation.participantLabels?.[id] ?? null)
+    .filter((value): value is string => Boolean(value && value.trim().length > 0));
+
+  if (labels.length > 0) {
+    return labels;
+  }
+
+  return conversation.participants;
 };
 
 export const useConversationData = () => {
@@ -150,7 +163,7 @@ export const useConversationData = () => {
       const status = buildStatus(session ?? undefined);
       const lastMessage = lastMessages[conversation.conversationId]?.content ?? '';
       const displayName =
-        conversation.type === 'sam' ? 'Sam Concierge' : conversation.participants.join(', ');
+        conversation.type === 'sam' ? 'Sam Concierge' : buildParticipantNames(conversation).join(', ');
 
       return {
         conversation,

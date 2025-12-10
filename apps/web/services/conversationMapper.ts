@@ -6,6 +6,7 @@ export interface ConversationRecord {
   participants: string[];
   linked_session_id: string | null;
   last_activity: string;
+  participant_display_map?: Record<string, string> | null;
 }
 
 export interface SessionRecord {
@@ -63,6 +64,7 @@ export const mapConversationRecord = (
   conversationId: record.id,
   type: record.type,
   participants,
+  participantLabels: record.participant_display_map ?? undefined,
   linkedSessionId: linkedSessionId ?? undefined,
   lastActivity: toTimestamp(record.last_activity),
   unreadCount: 0

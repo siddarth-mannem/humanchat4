@@ -84,6 +84,7 @@ export interface Conversation {
   id: string;
   type: ConversationType;
   participants: string[];
+  participant_display_map?: Record<string, string> | null;
   linked_session_id: string | null;
   last_activity: string;
   created_at: string;
