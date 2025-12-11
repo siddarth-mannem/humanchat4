@@ -81,7 +81,13 @@ export default function UserSettingsMenu() {
       >
         <span className="sr-only">{statusLabel}</span>
         <span aria-hidden>{initials}</span>
-        <span className={clsx('absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full border border-midnight', statusDot)} />
+        <span
+          aria-hidden
+          className={clsx(
+            'pointer-events-none absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-midnight shadow-[0_0_4px_rgba(0,0,0,0.45)]',
+            statusDot
+          )}
+        />
       </button>
       <div
         className={clsx(

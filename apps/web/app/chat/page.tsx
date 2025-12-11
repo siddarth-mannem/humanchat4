@@ -145,7 +145,7 @@ export default function ChatPage() {
   return (
     <main className="flex h-screen min-h-screen flex-col overflow-hidden bg-midnight text-white">
       <header className="sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b border-white/10 bg-midnight px-4 py-3 text-xs uppercase tracking-[0.3em] text-white/60">
-        <span>Workspace</span>
+        <span>Chat Window</span>
         {isTablet && (
           <button
             type="button"
