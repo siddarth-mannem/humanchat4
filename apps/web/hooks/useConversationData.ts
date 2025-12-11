@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { liveQuery } from 'dexie';
 import { db, type Conversation, type Session, type Message } from '../../../src/lib/db';
 import { formatRelativeTimestamp } from '../utils/time';
+import { sessionStatusManager } from '../services/sessionStatusManager';
 
 export interface ConversationListEntry {
   conversation: Conversation;
@@ -85,8 +86,10 @@ const ensureSamConversation = (collection: Conversation[]): Conversation => {
   return collection.find((item) => item.type === 'sam') ?? SAM_FALLBACK_CONVERSATION;
 };
 
-const buildParticipantNames = (conversation: Conversation): string[] => {
-  const labels = conversation.participants
+const buildParticipantNames = (conversation: Conversation, currentUserId?: string | null): string[] => {
+  const peerIds = conversation.participants.filter((participantId) => participantId !== currentUserId);
+  const labelSource = peerIds.length > 0 ? peerIds : conversation.participants;
+  const labels = labelSource
     .map((id) => conversation.participantLabels?.[id] ?? null)
     .filter((value): value is string => Boolean(value && value.trim().length > 0));
 
@@ -94,10 +97,11 @@ const buildParticipantNames = (conversation: Conversation): string[] => {
     return labels;
   }
 
-  return conversation.participants;
+  return labelSource;
 };
 
 export const useConversationData = () => {
+  const [currentUserId, setCurrentUserId] = useState<string | null>(() => sessionStatusManager.getCurrentUserId());
   const [payload, setPayload] = useState<ConversationPayload | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -126,6 +130,12 @@ export const useConversationData = () => {
     return () => {
       window.removeEventListener('humanchat-sync', handler as EventListener);
     };
+  }, []);
+
+  useEffect(() => {
+    return sessionStatusManager.onCurrentUserChange((userId: string | null) => {
+      setCurrentUserId(userId);
+    });
   }, []);
 
   const reload = async () => {
@@ -163,7 +173,7 @@ export const useConversationData = () => {
       const status = buildStatus(session ?? undefined);
       const lastMessage = lastMessages[conversation.conversationId]?.content ?? '';
       const displayName =
-        conversation.type === 'sam' ? 'Sam Concierge' : buildParticipantNames(conversation).join(', ');
+        conversation.type === 'sam' ? 'Sam Concierge' : buildParticipantNames(conversation, currentUserId).join(', ');
 
       return {
         conversation,
@@ -195,7 +205,7 @@ export const useConversationData = () => {
       .sort((a, b) => b.conversation.lastActivity - a.conversation.lastActivity);
 
     return [samEntry, ...humanEntries];
-  }, [payload]);
+  }, [payload, currentUserId]);
 
   const hasHumanConversations = useMemo(() => {
     return conversations.slice(1).some((entry) => entry.conversation.type === 'human');
