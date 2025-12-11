@@ -11,6 +11,12 @@ PROJECT_ID=${PROJECT_ID:-"loyal-env-475400-u0"}
 REGION=${REGION:-"us-central1"}
 
 # Set environment-specific service name
+# START Command: 
+# gcloud run services update humanchat-api-dev \
+  # --project=loyal-env-475400-u0 \
+  # --region=us-central1 \
+  # --env-vars-file=env-update.yaml
+# END Command: 
 if [[ "${DEPLOY_ENV}" == "development" ]]; then
   SERVICE_NAME=${SERVICE_NAME:-"humanchat-api-dev"}
 else
