@@ -86,30 +86,13 @@ const HeroLoginPanel = (_: HeroLoginPanelProps, ref: ForwardedRef<HeroLoginPanel
         <p className="text-xs uppercase tracking-[0.35em] text-white/60">You are signed in</p>
         <h2 className="mt-3 font-display text-2xl text-white">Ready whenever you are</h2>
         <p className="mt-2 text-sm text-white/70">
-          Sam already knows who you are. Jump back into the workspace or tweak preferences before your next intro.
+          Sam already knows who you are. Jump back into chat when you need a warm introduction. Use the avatar menu to manage
+          settings or log out.
         </p>
 
         <div className="mt-6 rounded-2xl border border-white/15 bg-black/30 p-4">
           <p className="text-sm font-semibold text-white">{identity.name}</p>
           {identity.email && <p className="text-xs text-white/60">{identity.email}</p>}
-        </div>
-
-        <div className="mt-6 flex flex-col gap-3">
-          <button
-            type="button"
-            onClick={() => router.push('/chat?focus=sam')}
-            className="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-2 text-sm font-semibold text-midnight transition hover:scale-[1.01]"
-          >
-            Open Sam
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push('/settings')}
-            className="inline-flex items-center justify-center rounded-2xl border border-white/30 px-5 py-2 text-sm font-semibold text-white transition hover:border-white"
-          >
-            Review settings
-          </button>
-          <LogoutButton className="inline-flex items-center justify-center rounded-2xl border border-white/30 px-5 py-2 text-sm font-semibold text-white transition hover:border-white" />
         </div>
       </section>
     );

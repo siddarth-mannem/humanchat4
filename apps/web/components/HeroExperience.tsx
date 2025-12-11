@@ -58,9 +58,11 @@ export default function HeroExperience() {
           </button>
         </div>
 
-        <p className="text-xs uppercase tracking-[0.3em] text-white/60">
-          {identity ? `Signed in as ${identity.name}` : 'Not signed in — use the panel to log in instantly.'}
-        </p>
+        {!identity && (
+          <p className="text-xs uppercase tracking-[0.3em] text-white/60">
+            Not signed in — use the panel to log in instantly.
+          </p>
+        )}
       </div>
 
       <HeroLoginPanel ref={loginPanelRef} />
