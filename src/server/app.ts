@@ -7,6 +7,7 @@ import swaggerUi from 'swagger-ui-express';
 import YAML from 'yamljs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { existsSync } from 'node:fs';
 import routes from './routes/index.js';
 import settingsRoutes from './routes/settingsRoutes.js';
 import webhookRoutes from './routes/webhookRoutes.js';
@@ -20,9 +21,18 @@ const __dirname = dirname(__filename);
 
 const app = express();
 
-// Load OpenAPI specification
-const openapiPath = join(__dirname, '../../openapi.yaml');
-const swaggerDocument = YAML.load(openapiPath);
+// Load OpenAPI specification (works in both src and dist builds)
+const openapiCandidates = [
+  join(__dirname, '../../openapi.yaml'),
+  join(__dirname, '../../../openapi.yaml'),
+  join(process.cwd(), 'openapi.yaml')
+];
+
+const resolvedOpenapiPath = openapiCandidates.find((candidate) => existsSync(candidate));
+const swaggerDocument = resolvedOpenapiPath ? YAML.load(resolvedOpenapiPath) : null;
+if (!resolvedOpenapiPath) {
+  console.warn('[Swagger] openapi.yaml not found; /api-docs will be disabled.');
+}
 
 const escapeRegex = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -73,10 +83,16 @@ app.use(cookieParser());
 app.use('/health', (_req, res) => success(res, { status: 'ok' }));
 
 // Swagger API Documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
-  customCss: '.swagger-ui .topbar { display: none }',
-  customSiteTitle: 'HumanChat API Documentation'
-}));
+if (swaggerDocument) {
+  app.use(
+    '/api-docs',
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerDocument, {
+      customCss: '.swagger-ui .topbar { display: none }',
+      customSiteTitle: 'HumanChat API Documentation'
+    })
+  );
+}
 
 app.use('/api/webhooks', webhookRoutes);
 app.use(express.json({ limit: '1mb' }));
