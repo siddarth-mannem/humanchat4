@@ -87,7 +87,7 @@ export default function ConversationSidebar({
   const hasMore = humanEntries.length > visibleCount;
   
   // Handle infinite scroll
-  const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
+  const handleScroll = (event: React.UIEvent<HTMLUListElement>) => {
     if (humanView !== 'active' || !hasMore) return;
     
     const target = event.currentTarget;
