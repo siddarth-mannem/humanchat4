@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import clsx from 'clsx';
 import ConversationSidebar from '../../components/ConversationSidebar';
@@ -14,7 +14,7 @@ import { fetchUserProfile, type UserProfile } from '../../services/profileApi';
 import { INSTANT_INVITE_TARGETED_EVENT, type InstantInviteTargetedDetail } from '../../constants/events';
 import { PENDING_INVITE_CONVERSATION_KEY } from '../../constants/storageKeys';
 
-export default function ChatPage() {
+const ChatShell = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeConversationId, setActiveConversationId] = useState<string | undefined>();
@@ -289,5 +289,13 @@ export default function ChatPage() {
       </div>
       {isMobile && <MobileBottomNav active={activeNav} onChange={handleNavChange} hasUnread={unreadTotal > 0} />}
     </main>
+  );
+};
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={<div className="flex h-screen items-center justify-center bg-midnight text-white/70">Loading chat...</div>}>
+      <ChatShell />
+    </Suspense>
   );
 }
