@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { InstantInvite } from '../../../src/lib/db';
 import { acceptInstantInvite, cancelInstantInvite, declineInstantInvite } from '../services/instantInviteApi';
+import { useAuthIdentity } from '../hooks/useAuthIdentity';
 import styles from './ConversationView.module.css';
 
 interface InstantInvitePanelProps {
@@ -41,8 +42,10 @@ const getInviteMessage = (invite: InstantInvite, currentUserId: string | null): 
 export default function InstantInvitePanel({ invite, currentUserId }: InstantInvitePanelProps) {
   const [action, setAction] = useState<PendingAction>(null);
   const [error, setError] = useState<string | null>(null);
-  const isRequester = invite.requesterUserId === currentUserId;
-  const isTarget = invite.targetUserId === currentUserId;
+  const { identity } = useAuthIdentity();
+  const resolvedUserId = currentUserId ?? identity?.id ?? null;
+  const isRequester = invite.requesterUserId === resolvedUserId;
+  const isTarget = invite.targetUserId === resolvedUserId;
   const isPending = invite.status === 'pending';
   const primaryButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -98,7 +101,7 @@ export default function InstantInvitePanel({ invite, currentUserId }: InstantInv
 
   return (
     <div className={styles.invitePanel}>
-      <div className={styles.inviteMessage}>{getInviteMessage(invite, currentUserId)}</div>
+      <div className={styles.inviteMessage}>{getInviteMessage(invite, resolvedUserId)}</div>
       {error && <div className={styles.error}>{error}</div>}
       {primaryCta && (
         <div className={styles.inviteActions}>
