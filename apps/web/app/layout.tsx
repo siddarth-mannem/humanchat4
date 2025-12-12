@@ -5,6 +5,7 @@ import PWAInitializer from '../components/PWAInitializer';
 import FirebaseSessionBridge from '../components/FirebaseSessionBridge';
 import IdentityInitializer from '../components/IdentityInitializer';
 import InstantInviteListener from '../components/InstantInviteListener';
+import InstantInviteNavigator from '../components/InstantInviteNavigator';
 import UserSettingsMenu from '../components/UserSettingsMenu';
 
 export const metadata = {
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <FirebaseSessionBridge />
         <IdentityInitializer />
         <InstantInviteListener />
+        <InstantInviteNavigator />
         <div className="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-end px-4 py-4">
           <div className="pointer-events-auto">
             <UserSettingsMenu />

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import clsx from 'clsx';
 import ConversationSidebar from '../../components/ConversationSidebar';
 import ConversationView from '../../components/ConversationView';
@@ -11,8 +12,11 @@ import { useConversationData } from '../../hooks/useConversationData';
 import { useChatRequests } from '../../hooks/useChatRequests';
 import { fetchUserProfile, type UserProfile } from '../../services/profileApi';
 import { INSTANT_INVITE_TARGETED_EVENT, type InstantInviteTargetedDetail } from '../../constants/events';
+import { PENDING_INVITE_CONVERSATION_KEY } from '../../constants/storageKeys';
 
 export default function ChatPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [activeConversationId, setActiveConversationId] = useState<string | undefined>();
   const [shouldOpenSam, setShouldOpenSam] = useState(false);
   const [mobilePane, setMobilePane] = useState<'list' | 'conversation'>('list');
@@ -31,6 +35,7 @@ export default function ChatPage() {
   const [requesterProfiles, setRequesterProfiles] = useState<Record<string, Pick<UserProfile, 'name' | 'headline' | 'avatarUrl'>>>(
     {}
   );
+  const pendingConversationParam = searchParams.get('conversationId');
 
   const samConversationId = useMemo(() => {
     return conversations.find((entry) => entry.conversation.type === 'sam')?.conversation.conversationId ?? 'sam-concierge';
@@ -59,11 +64,33 @@ export default function ChatPage() {
     if (activeConversationId || shouldOpenSam) {
       return;
     }
+
+    if (typeof window !== 'undefined') {
+      const pendingStored = window.sessionStorage?.getItem(PENDING_INVITE_CONVERSATION_KEY);
+      if (pendingStored) {
+        return;
+      }
+    }
+
     const firstConversationId = conversations[0]?.conversation.conversationId;
     if (firstConversationId) {
       setActiveConversationId(firstConversationId);
     }
   }, [activeConversationId, conversations, shouldOpenSam]);
+
+  const focusConversation = useCallback(
+    (conversationId: string) => {
+      setActiveConversationId(conversationId);
+      if (isMobile) {
+        setActiveNav('home');
+        setMobilePane('conversation');
+      } else {
+        setActiveNav('home');
+        setSidebarCollapsed(false);
+      }
+    },
+    [isMobile]
+  );
 
   const handleSelectConversation = (conversationId: string) => {
     setActiveConversationId(conversationId);
@@ -95,22 +122,37 @@ export default function ChatPage() {
 
     const handleInstantInvite = (event: Event) => {
       const detail = (event as CustomEvent<InstantInviteTargetedDetail>).detail;
-      if (!detail) return;
-
-      setActiveConversationId(detail.conversationId);
-      if (isMobile) {
-        setActiveNav('home');
-        setMobilePane('conversation');
-      } else {
-        setSidebarCollapsed(false);
+      if (!detail?.conversationId) {
+        return;
       }
+      focusConversation(detail.conversationId);
     };
 
     window.addEventListener(INSTANT_INVITE_TARGETED_EVENT, handleInstantInvite as EventListener);
     return () => {
       window.removeEventListener(INSTANT_INVITE_TARGETED_EVENT, handleInstantInvite as EventListener);
     };
-  }, [isMobile]);
+  }, [focusConversation]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    const storedConversationId = window.sessionStorage?.getItem(PENDING_INVITE_CONVERSATION_KEY);
+    if (!storedConversationId) {
+      return;
+    }
+    window.sessionStorage.removeItem(PENDING_INVITE_CONVERSATION_KEY);
+    focusConversation(storedConversationId);
+  }, [focusConversation]);
+
+  useEffect(() => {
+    if (!pendingConversationParam) {
+      return;
+    }
+    focusConversation(pendingConversationParam);
+    router.replace('/chat');
+  }, [pendingConversationParam, focusConversation, router]);
 
   useEffect(() => {
     const pendingIds = requests
