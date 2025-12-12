@@ -148,8 +148,9 @@ const migrateSamConversation = async (oldId: string, nextId: string): Promise<vo
   const messages = await db.messages.where('conversationId').equals(oldId).toArray();
   await Promise.all(
     messages.map((message) => {
-      if (!message.id) return Promise.resolve();
-      return db.messages.update(message.id, { conversationId: nextId });
+      const primaryKey = message.messageId ?? (message.id ? String(message.id) : null);
+      if (!primaryKey) return Promise.resolve();
+      return db.messages.update(primaryKey, { conversationId: nextId });
     })
   );
 
