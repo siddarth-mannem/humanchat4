@@ -113,6 +113,8 @@ export default function SessionView({ conversation, session, invite, messages, r
             <MessageBubble
               message={message}
               variant={isUserMessage(message, conversation) ? 'user' : 'sam'}
+              currentUserId={currentUserId}
+              conversation={conversation}
             />
           )}
         </VirtualMessageList>

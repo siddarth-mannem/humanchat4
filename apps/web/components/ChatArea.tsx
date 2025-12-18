@@ -66,7 +66,13 @@ export default function ChatArea({ conversation, messages, registerScrollContain
         {(message) => {
           const isMine = currentUserId ? message.senderId === currentUserId : false;
           return (
-            <MessageBubble message={message} variant={isMine ? 'user' : 'sam'} onQuickReply={handleQuickReply} />
+            <MessageBubble
+              message={message}
+              variant={isMine ? 'user' : 'sam'}
+              onQuickReply={handleQuickReply}
+              currentUserId={currentUserId}
+              conversation={conversation}
+            />
           );
         }}
       </VirtualMessageList>

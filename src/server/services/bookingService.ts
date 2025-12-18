@@ -6,7 +6,11 @@
 import { query, pool } from '../db/postgres.js';
 import { ApiError } from '../errors/ApiError.js';
 import { getGoogleCalendarBusyTimes, createCalendarEvent, deleteCalendarEvent } from './googleCalendarService.js';
-import { sendBookingConfirmationToChat } from './bookingNotificationService.js';
+import {
+  sendBookingConfirmationToChat,
+  sendBookingUpdateNotification,
+  sendBookingCancellationNotification
+} from './bookingNotificationService.js';
 import { createClient } from 'redis';
 import { env } from '../config/env.js';
 
@@ -722,7 +726,25 @@ export const cancelBooking = async (
     );
   }
 
-  return await getBookingById(bookingId);
+  const updatedBooking = await getBookingById(bookingId);
+
+  try {
+    await sendBookingCancellationNotification({
+      bookingId,
+      expertId: updatedBooking.expertId,
+      userId: updatedBooking.userId,
+      cancelledBy,
+      userName: updatedBooking.userName,
+      expertName: updatedBooking.expertName,
+      startTime: updatedBooking.startTime,
+      durationMinutes: updatedBooking.durationMinutes,
+      reason
+    });
+  } catch (err) {
+    console.error('Failed to send booking cancellation notification:', err);
+  }
+
+  return updatedBooking;
 };
 
 /**
@@ -807,16 +829,18 @@ export const rescheduleBooking = async (
 
     const newBookingDetails = await getBookingById(newBooking.rows[0].id);
 
-    // Send reschedule notification to chat (async)
-    sendBookingConfirmationToChat(
-      newBooking.rows[0].id,
-      oldBooking.expertId,
-      oldBooking.userId,
-      newBookingDetails.userName,
-      newBookingDetails.expertName,
-      newStartTime,
-      oldBooking.durationMinutes
-    ).catch((err) => console.error('Failed to send reschedule notification to chat:', err));
+    // Notify both parties about the schedule change
+    sendBookingUpdateNotification({
+      bookingId: newBooking.rows[0].id,
+      expertId: oldBooking.expertId,
+      userId: oldBooking.userId,
+      updatedBy: userId,
+      userName: newBookingDetails.userName,
+      expertName: newBookingDetails.expertName,
+      oldStartTime: oldBooking.startTime,
+      newStartTime: newBookingDetails.startTime,
+      durationMinutes: oldBooking.durationMinutes
+    }).catch((err) => console.error('Failed to send booking update notification:', err));
 
     return newBookingDetails;
   } catch (error) {
