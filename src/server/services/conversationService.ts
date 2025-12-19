@@ -39,7 +39,12 @@ export const listConversations = async (userId: string): Promise<Conversation[]>
               SELECT json_object_agg(u.id::text, COALESCE(NULLIF(TRIM(u.name), ''), 'HumanChat member'))
               FROM users u
               WHERE u.id = ANY(c.participants)
-            ) AS participant_display_map
+            ) AS participant_display_map,
+            (
+              SELECT json_object_agg(u.id::text, u.avatar_url)
+              FROM users u
+              WHERE u.id = ANY(c.participants) AND u.avatar_url IS NOT NULL
+            ) AS participant_avatars
        FROM conversations c
       WHERE $1 = ANY(c.participants)
       ORDER BY c.last_activity DESC`,

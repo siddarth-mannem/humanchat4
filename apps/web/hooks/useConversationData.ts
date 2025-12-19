@@ -11,6 +11,7 @@ export interface ConversationListEntry {
   meta: {
     displayName: string;
     initials: string;
+    avatarUrl?: string;
     lastMessage: string;
     relativeTimestamp: string;
     status?: 'active' | 'scheduled';
@@ -188,6 +189,7 @@ export const useConversationData = () => {
             type: conv.type,
             participants: conv.participants || [],
             participantLabels: conv.participant_display_map || {},
+            participantAvatars: conv.participant_avatars || {},
             linkedSessionId: conv.linked_session_id || undefined,
             lastActivity: new Date(conv.last_activity).getTime(),
             unreadCount: 0
@@ -312,12 +314,18 @@ export const useConversationData = () => {
       const lastMessage = lastMessages[conversation.conversationId]?.content ?? '';
       const displayName =
         conversation.type === 'sam' ? 'Sam Concierge' : buildParticipantNames(conversation, currentUserId).join(', ');
+      
+      // Extract avatar URL for the first peer (non-current user)
+      const peerIds = conversation.participants.filter((id) => id !== currentUserId);
+      const primaryPeerId = peerIds.length > 0 ? peerIds[0] : conversation.participants[0];
+      const avatarUrl = conversation.participantAvatars?.[primaryPeerId] || undefined;
 
       return {
         conversation,
         meta: {
           displayName,
           initials: conversation.type === 'sam' ? 'SAM' : buildInitials(displayName || 'Human'),
+          avatarUrl,
           lastMessage: lastMessage || 'No messages yet',
           relativeTimestamp: formatRelativeTimestamp(conversation.lastActivity),
           status

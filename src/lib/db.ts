@@ -129,6 +129,7 @@ export interface Conversation {
   type: ConversationType;
   participants: string[];
   participantLabels?: Record<string, string>;
+  participantAvatars?: Record<string, string>;
   linkedSessionId?: string;
   lastActivity: number;
   unreadCount: number;
