@@ -1,80 +1,36 @@
 "use client";
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import AccountProfilePanel from '../../components/AccountProfilePanel';
 import { AvailabilityManager } from '../../components/AvailabilityManager';
 import { BookingsManager } from '../../components/BookingsManager';
+import SettingsConnectionsPanel from '../../components/settings/SettingsConnectionsPanel';
+import SettingsProfilePanel from '../../components/settings/SettingsProfilePanel';
 import { useAuthIdentity } from '../../hooks/useAuthIdentity';
 import { useProfileDetails } from '../../hooks/useProfileDetails';
-import { getExpertBookings, getUserBookings } from '../../services/bookingApi';
-import type { Booking } from '../../../../src/lib/db';
-
-const formatSessionDate = (timestamp: number) =>
-  new Date(timestamp).toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric'
-  });
-
-const formatSessionTime = (start: number, end: number) => {
-  const startText = new Date(start).toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit'
-  });
-  const endText = new Date(end).toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit'
-  });
-  return `${startText} – ${endText}`;
-};
+import { useSettings } from '../../hooks/useSettings';
 
 export default function AccountPage() {
   const profileState = useProfileDetails();
-  const { profile } = profileState;
   const { identity } = useAuthIdentity();
-  const [sessions, setSessions] = useState<Booking[]>([]);
-  const [sessionsLoading, setSessionsLoading] = useState(true);
-  const [sessionsError, setSessionsError] = useState<string | null>(null);
+  const settingsState = useSettings();
   const [openPanel, setOpenPanel] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const hydrateSessions = async () => {
-      setSessionsLoading(true);
-      setSessionsError(null);
-      try {
-        const [clientBookings, expertBookings] = await Promise.all([
-          getUserBookings('upcoming'),
-          getExpertBookings('upcoming')
-        ]);
-        if (cancelled) {
-          return;
-        }
-        const merged = [...clientBookings, ...expertBookings]
-          .sort((a, b) => a.startTime - b.startTime)
-          .slice(0, 3);
-        setSessions(merged);
-      } catch (err) {
-        if (!cancelled) {
-          setSessionsError('Unable to load upcoming sessions.');
-        }
-      } finally {
-        if (!cancelled) {
-          setSessionsLoading(false);
-        }
-      }
-    };
-
-    void hydrateSessions();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   const panelSections = [
+    {
+      id: 'settings-connections',
+      label: 'Settings · Availability & connections',
+      tagline: 'Presence toggle, paid modes, and integrations.',
+      content: <SettingsConnectionsPanel embedded settingsState={settingsState} />
+    },
+    {
+      id: 'settings-profile',
+      label: 'Settings · Profile & identity',
+      tagline: 'Update public details, narrative, and preferences.',
+      content: <SettingsProfilePanel embedded profileState={profileState} />
+    },
     {
       id: 'calendar',
       label: 'Full calendar',
@@ -92,33 +48,6 @@ export default function AccountPage() {
       content: (
         <div className="space-y-4">
           <AvailabilityManager embedded />
-        </div>
-      )
-    },
-    {
-      id: 'settings',
-      label: 'Settings & preferences',
-      tagline: 'Advanced controls for profile, notifications, and security.',
-      content: (
-        <div className="space-y-3 text-sm text-white/70">
-          <p>
-            Jump into the settings workspace for fine-grained control—payment methods, security keys, notifications, and
-            integrations all live there.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href="/settings?tab=profile"
-              className="rounded-full border border-white/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-white/80 transition hover:border-white/40"
-            >
-              Profile settings
-            </Link>
-            <Link
-              href="/settings"
-              className="rounded-full border border-white/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-white/80 transition hover:border-white/40"
-            >
-              All settings
-            </Link>
-          </div>
         </div>
       )
     }
@@ -149,50 +78,6 @@ export default function AccountPage() {
         <div className="flex flex-col gap-8 py-10">
           <AccountProfilePanel profileState={profileState} />
 
-          <section aria-labelledby="sessions-heading" className="rounded-3xl border border-white/12 bg-white/5 p-6">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-xs uppercase tracking-[0.3em] text-white/50">Upcoming sessions</p>
-                <h2 id="sessions-heading" className="text-xl font-semibold text-white">
-                  What&apos;s next on your calendar
-                </h2>
-              </div>
-              <Link
-                href="/bookings"
-                className="rounded-full border border-white/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-white/70 transition hover:border-white/40"
-              >
-                Full calendar
-              </Link>
-            </div>
-            <div className="mt-4 space-y-4">
-              {sessionsLoading && <p className="text-sm text-white/60">Loading sessions…</p>}
-              {!sessionsLoading && sessionsError && (
-                <p className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">{sessionsError}</p>
-              )}
-              {!sessionsLoading && !sessionsError && sessions.length === 0 && (
-                <p className="rounded-2xl border border-dashed border-white/20 px-4 py-6 text-sm text-white/60">
-                  No sessions scheduled. Share your link or accept an invite to fill the week.
-                </p>
-              )}
-              {sessions.map((session) => (
-                <div key={session.bookingId} className="rounded-2xl border border-white/12 bg-black/30 p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="text-base font-semibold text-white">{session.expertName ?? 'Pending match'}</p>
-                      {session.expertHeadline && <p className="text-sm text-white/60">{session.expertHeadline}</p>}
-                    </div>
-                    <span className="rounded-full border border-emerald-300/40 bg-emerald-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-100">
-                      {session.status === 'scheduled' ? 'Scheduled' : session.status}
-                    </span>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-4 text-sm text-white/70">
-                    <span>{formatSessionDate(session.startTime)}</span>
-                    <span>{formatSessionTime(session.startTime, session.endTime)}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
           <div className="space-y-4">
             {panelSections.map((panel) => {
               const isOpen = openPanel === panel.id;
