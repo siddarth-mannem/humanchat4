@@ -42,6 +42,30 @@ router.get('/:id', authenticate, authenticatedLimiter, async (req, res, next) =>
 
 const socialUrlSchema = z.string().url().max(2048).nullable().optional();
 
+const camelToSnakeSocialMap: Record<string, keyof User> = {
+  linkedinUrl: 'linkedin_url',
+  facebookUrl: 'facebook_url',
+  instagramUrl: 'instagram_url',
+  quoraUrl: 'quora_url',
+  mediumUrl: 'medium_url',
+  youtubeUrl: 'youtube_url',
+  otherSocialUrl: 'other_social_url'
+};
+
+const normalizeUpdatePayload = (body: unknown): Record<string, unknown> => {
+  if (!body || typeof body !== 'object') {
+    return {};
+  }
+  const record = body as Record<string, unknown>;
+  const normalized: Record<string, unknown> = { ...record };
+  for (const [camelKey, snakeKey] of Object.entries(camelToSnakeSocialMap)) {
+    if (record[camelKey] !== undefined && normalized[snakeKey] === undefined) {
+      normalized[snakeKey] = record[camelKey];
+    }
+  }
+  return normalized;
+};
+
 const updateSchema = z.object({
   name: z.string().min(2).max(80).optional(),
   headline: z.string().optional(),
@@ -62,8 +86,13 @@ const updateSchema = z.object({
 
 router.patch('/:id', authenticate, authenticatedLimiter, async (req, res, next) => {
   try {
-  const payload = updateSchema.parse(req.body) as Partial<User>;
-  const user = await updateUserProfile(req.params.id, payload);
+    const normalizedBody = normalizeUpdatePayload(req.body ?? {});
+    const payload = updateSchema.parse(normalizedBody) as Partial<User>;
+    if (process.env.LOG_PROFILE_UPDATES === '1' || process.env.NODE_ENV !== 'production') {
+      const touchedFields = Object.keys(payload);
+      console.info('[user:update]', req.params.id, touchedFields);
+    }
+    const user = await updateUserProfile(req.params.id, payload);
     success(res, { user });
   } catch (error) {
     next(error);
