@@ -95,7 +95,7 @@ export default function ProfileCard({
     <article className={styles.card}>
       <div className={styles.headerRow}>
         <img
-          src={profile.avatarUrl || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(profile.name ?? 'Human')}`}
+          src={profile.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name ?? 'Human')}&background=4f46e5&color=fff&size=128`}
           alt={profile.name}
           className={styles.avatar}
           loading="lazy"

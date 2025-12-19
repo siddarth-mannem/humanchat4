@@ -49,25 +49,35 @@ export const sendBookingConfirmationToChat = async (
     const startParts = toDateParts(startTime);
 
     // Create booking confirmation message for the client
-    const clientMessage = `✅ **Booking Confirmed**\n\n` +
-      `**Session Details:**\n` +
-      `📅 Date: ${startParts.formattedDate}\n` +
-      `🕐 Time: ${startParts.formattedTime}\n` +
-      `⏱️ Duration: ${durationMinutes} minutes\n` +
-      `👤 Expert: ${expertName}\n\n` +
-      `Your session has been confirmed. You'll receive reminders before the call.`;
+    const clientMessage = [
+      `✅ **Booking Confirmed**`,
+      ``,
+      `**Session Details:**`,
+      `📅 Date: ${startParts.formattedDate}`,
+      `🕐 Time: ${startParts.formattedTime}`,
+      `⏱️ Duration: ${durationMinutes} minutes`,
+      `👤 Expert: ${expertName}`,
+      ``,
+      `Your session has been confirmed. You'll receive reminders before the call.`
+    ].join('\n');
 
     // Create notification message for the expert
-    const expertMessage = `📅 **New Booking Request**\n\n` +
-      `**Session Details:**\n` +
-      `📅 Date: ${startParts.formattedDate}\n` +
-      `🕐 Time: ${startParts.formattedTime}\n` +
-      `⏱️ Duration: ${durationMinutes} minutes\n` +
-      `👤 Client: ${userName}\n\n` +
-      `A new session has been scheduled with you.`;
+    const expertMessage = [
+      `📅 **New Booking Request**`,
+      ``,
+      `**Session Details:**`,
+      `📅 Date: ${startParts.formattedDate}`,
+      `🕐 Time: ${startParts.formattedTime}`,
+      `⏱️ Duration: ${durationMinutes} minutes`,
+      `👤 Client: ${userName}`,
+      ``,
+      `A new session has been scheduled with you.`
+    ].join('\n');
 
     const metadata = {
       bookingId,
+      expertId,
+      userId,
       startTime: startParts.iso,
       durationMinutes,
       expertName,

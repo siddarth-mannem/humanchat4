@@ -7,6 +7,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import Link from 'next/link';
 import { getExpertAvailability, createBooking, type TimeSlot } from '../../../../services/bookingApi';
 import { ProfileSummary } from '@/src/lib/db';
 
@@ -129,6 +130,9 @@ export default function BookingPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0e27] text-white p-6">
+      <Link href="/?focus=sam" className="fixed left-6 top-6 text-sm font-semibold tracking-wider text-white/70 hover:text-white transition-colors z-10">
+        HUMANCHAT.COM
+      </Link>
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">

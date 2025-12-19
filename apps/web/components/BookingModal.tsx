@@ -281,24 +281,7 @@ export default function BookingModal({ open, profile, conversation, onClose }: B
         idempotencyKey: `${guestUserId}-${profile.userId}-${startTime.getTime()}`
       });
 
-      // Notify Sam about the booking
-      await sendSamMessage({
-        conversationId: conversation.conversationId,
-        message: `Book ${selection.duration}-minute session with ${profile.name} on ${selection.slot.start}.`,
-        conversationHistory: [],
-        userContext: {
-          timezone,
-          booking: {
-            start: selection.slot.start,
-            end: selection.slot.end,
-            duration_minutes: selection.duration,
-            price: selection.price,
-            expert: profile.name
-          }
-        }
-      }).catch((error) => {
-        console.warn('Sam booking notification failed', error);
-      });
+      // Server will send properly formatted booking notifications to chat
 
       await scheduleCallReminder(new Date(selection.slot.start).getTime(), profile.name ?? 'your host');
 

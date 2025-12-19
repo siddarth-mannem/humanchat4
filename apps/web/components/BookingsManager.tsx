@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 import { cancelBooking, getExpertBookings, getUserBookings } from '../services/bookingApi';
 import type { Booking } from '../../../src/lib/db';
@@ -35,7 +36,12 @@ export function BookingsManager({ embedded = false }: BookingsManagerProps) {
         getUserBookings(tab),
         getExpertBookings(tab)
       ]);
-      const allBookings = [...clientBookings, ...expertBookings].sort((a, b) => b.startTime - a.startTime);
+      // Deduplicate bookings by bookingId before merging
+      const bookingMap = new Map<string, Booking>();
+      [...clientBookings, ...expertBookings].forEach(booking => {
+        bookingMap.set(booking.bookingId, booking);
+      });
+      const allBookings = Array.from(bookingMap.values()).sort((a, b) => b.startTime - a.startTime);
       setBookings(allBookings);
     } catch (err) {
       console.error('Failed to fetch bookings:', err);
@@ -142,6 +148,11 @@ export function BookingsManager({ embedded = false }: BookingsManagerProps) {
 
   return (
     <div className={containerClass}>
+      {!embedded && (
+        <Link href="/?focus=sam" className="fixed left-6 top-6 text-sm font-semibold tracking-wider text-white/70 hover:text-white transition-colors z-50">
+          HUMANCHAT.COM
+        </Link>
+      )}
       <div className={innerClass}>
         <div className={embedded ? 'flex items-center justify-between' : 'mb-8'}>
           <div>
@@ -177,13 +188,22 @@ export function BookingsManager({ embedded = false }: BookingsManagerProps) {
           </div>
         ) : (
           <div className="space-y-4">
-            {bookings.map((booking) => (
+            {bookings.map((booking) => {
+              console.log('Booking avatar data:', {
+                bookingId: booking.bookingId,
+                expertName: booking.expertName,
+                expertAvatar: booking.expertAvatar,
+                hasAvatar: !!booking.expertAvatar
+              });
+              return (
               <div key={booking.bookingId} className={`${cardClass} rounded-3xl p-6 transition hover:border-white/30`}>
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="flex flex-1 items-start gap-4">
-                    {booking.expertAvatar && (
-                      <img src={booking.expertAvatar} alt={booking.expertName ?? 'Expert'} className="h-12 w-12 rounded-full object-cover" />
-                    )}
+                    <img 
+                      src={booking.expertAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(booking.expertName ?? 'Expert')}&background=4f46e5&color=fff&size=128`}
+                      alt={booking.expertName ?? 'Expert'} 
+                      className="h-12 w-12 rounded-full object-cover ring-1 ring-white/10" 
+                    />
                     <div>
                       <p className="text-lg font-semibold">{booking.expertName ?? 'Pending match'}</p>
                       {booking.expertHeadline && <p className="text-sm text-white/60">{booking.expertHeadline}</p>}
@@ -237,7 +257,8 @@ export function BookingsManager({ embedded = false }: BookingsManagerProps) {
                   </div>
                 </div>
               </div>
-            ))}
+            );
+            })}
           </div>
         )}
       </div>

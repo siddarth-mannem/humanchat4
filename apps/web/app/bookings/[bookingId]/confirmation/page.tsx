@@ -7,6 +7,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import Link from 'next/link';
 import { getBookingById } from '../../../../services/bookingApi';
 import { Booking } from '@/src/lib/db';
 
@@ -68,6 +69,9 @@ export default function BookingConfirmationPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0a0e27] via-[#0d1235] to-[#0a0e27] text-white">
+      <Link href="/?focus=sam" className="fixed left-6 top-6 text-sm font-semibold tracking-wider text-white/70 hover:text-white transition-colors z-10">
+        HUMANCHAT.COM
+      </Link>
       <div className="max-w-3xl mx-auto px-4 py-12">
         {/* Success Icon with Confetti */}
         <div className="relative flex justify-center mb-8">

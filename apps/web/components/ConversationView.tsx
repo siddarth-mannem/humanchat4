@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import clsx from 'clsx';
+import { useRouter } from 'next/navigation';
 import styles from './ConversationView.module.css';
 import { useConversationDetail } from '../hooks/useConversationDetail';
 import SamChatView from './SamChatView';
@@ -143,6 +144,24 @@ export default function ConversationView({ activeConversationId, onSelectConvers
     [onSelectConversation]
   );
 
+  const router = useRouter();
+  
+  const otherParticipant = useMemo(() => {
+    if (!conversation || !currentUserId || conversation.type === 'sam') return null;
+    const otherId = conversation.participants.find(p => p !== currentUserId);
+    if (!otherId) return null;
+    return {
+      id: otherId,
+      name: conversation.participantLabels?.[otherId] || 'User',
+      avatar: conversation.participantAvatars?.[otherId]
+    };
+  }, [conversation, currentUserId]);
+
+  const handleScheduleClick = () => {
+    if (!otherParticipant) return;
+    router.push(`/experts/${otherParticipant.id}/schedule`);
+  };
+
   return (
     <>
       <section className={clsx(styles.container, isMobile && styles.mobileContainer)}>
@@ -156,11 +175,23 @@ export default function ConversationView({ activeConversationId, onSelectConvers
           <div className={styles.title}>{summary.title}</div>
           <div className={styles.subtitle}>{summary.subtitle}</div>
         </div>
-        {conversation && (
-          <div className={styles.metadata}>
-            Last activity • {new Date(conversation.lastActivity).toLocaleTimeString()}
-          </div>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {otherParticipant && (
+            <button
+              type="button"
+              onClick={handleScheduleClick}
+              className={styles.scheduleButton}
+              title={`Schedule time with ${otherParticipant.name}`}
+            >
+              📅 Schedule
+            </button>
+          )}
+          {conversation && (
+            <div className={styles.metadata}>
+              Last activity • {new Date(conversation.lastActivity).toLocaleTimeString()}
+            </div>
+          )}
+        </div>
       </div>
       {connectError && <div className={styles.error}>{connectError}</div>}
       <div className={styles.viewArea}>

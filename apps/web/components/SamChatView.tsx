@@ -202,8 +202,34 @@ export default function SamChatView({
   }, [conversation.conversationId]);
 
   const orderedMessages = useMemo(() => {
-    return [...messages].sort((a, b) => a.timestamp - b.timestamp);
-  }, [messages]);
+    return [...messages]
+      .filter((message) => {
+        // Filter out old-style booking messages (client-side created)
+        const content = message.content?.trim() || '';
+        const isOldBookingMessage = message.senderType === 'user_text' && 
+          content.startsWith('Book') && 
+          content.includes('minute session');
+        
+        if (isOldBookingMessage) return false;
+
+        // Filter booking notifications - only show messages for the current user's role
+        if (message.type === 'system_notice' && message.actions?.length && currentUserId) {
+          const bookingAction = message.actions.find(
+            (a: any) => a.type === 'booking_confirmation' || a.type === 'booking_notification'
+          );
+          
+          if (bookingAction) {
+            const { expertId, role } = bookingAction as any;
+            // Show expert messages only to expert, client messages only to client
+            if (role === 'expert' && currentUserId !== expertId) return false;
+            if (role === 'client' && currentUserId === expertId) return false;
+          }
+        }
+
+        return true;
+      })
+      .sort((a, b) => a.timestamp - b.timestamp);
+  }, [messages, currentUserId]);
 
   const knownProfiles = useMemo(() => {
     const collected = new Map<string, SamShowcaseProfile>();

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import Link from 'next/link';
 import { getBookingById, getExpertAvailability, rescheduleBooking, type TimeSlot } from '../../../../services/bookingApi';
 import { Booking } from '@/src/lib/db';
 
@@ -99,6 +100,9 @@ export default function RescheduleBookingPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0e27] text-white p-6">
+      <Link href="/" className="fixed left-6 top-6 text-sm font-semibold tracking-wider text-white/70 hover:text-white transition-colors z-50">
+        HUMANCHAT.COM
+      </Link>
       <div className="max-w-3xl mx-auto">
         {/* Header */}
         <div className="mb-8">
