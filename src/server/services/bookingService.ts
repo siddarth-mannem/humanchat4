@@ -11,7 +11,6 @@ import {
   sendBookingUpdateNotification,
   sendBookingCancellationNotification
 } from './bookingNotificationService.js';
-import { createClient } from 'redis';
 import { env } from '../config/env.js';
 
 export interface AvailabilityRule {

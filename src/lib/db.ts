@@ -140,6 +140,7 @@ export interface Message {
   messageId?: string; // Backend message UUID
   conversationId: string;
   senderId: string;
+  senderType?: string | null;
   content: string;
   timestamp: number;
   type: MessageType;

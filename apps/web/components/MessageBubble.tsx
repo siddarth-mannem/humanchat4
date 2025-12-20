@@ -80,7 +80,11 @@ export default function MessageBubble({
     touchDelta.current = 0;
   };
 
-  const content = getVisibleMessageContent(message, currentUserId, conversation);
+  const content = getVisibleMessageContent(
+    message,
+    currentUserId ?? null,
+    conversation ?? null
+  );
 
   return (
     <div
