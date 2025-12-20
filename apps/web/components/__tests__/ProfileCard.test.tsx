@@ -13,7 +13,7 @@ const baseProfile: ProfileSummary = {
   instantRatePerMinute: 12,
   isOnline: true,
   hasActiveSession: false,
-  bio: 'I help product teams scale impact.',
+  linkedinUrl: 'https://www.linkedin.com/in/jordan',
   scheduledRates: [
     { durationMinutes: 30, price: 150 },
     { durationMinutes: 60, price: 280 }
@@ -65,14 +65,21 @@ describe('ProfileCard', () => {
   it('renders Human fallback copy when profile has no headline or bio', () => {
     const fallbackProfile: ProfileSummary = {
       ...baseProfile,
-      headline: '',
-      bio: ''
+      headline: ''
     };
 
     render(<ProfileCard profile={fallbackProfile} />);
 
-    const fallbackText = screen.getAllByText('Human');
-    expect(fallbackText.length).toBeGreaterThanOrEqual(2);
-    expect(screen.queryByRole('button', { name: /read more/i })).toBeNull();
+    expect(screen.getByText('Human')).toBeInTheDocument();
+  });
+
+  it('opens the expanded profile with social links', async () => {
+    render(<ProfileCard profile={baseProfile} />);
+
+    await userEvent.click(screen.getByRole('button', { name: /see full profile/i }));
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText(/find them online/i)).toBeInTheDocument();
+    expect(screen.getByText('linkedin.com')).toBeInTheDocument();
   });
 });

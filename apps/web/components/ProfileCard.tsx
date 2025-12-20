@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import clsx from 'clsx';
 import type { ProfileSummary } from '../../../src/lib/db';
 import styles from './ProfileCard.module.css';
 import StatusBadge from './StatusBadge';
@@ -15,9 +14,32 @@ const ensureHumanCopy = (value?: string | null): string => {
   return trimmed && trimmed.length > 0 ? trimmed : HUMAN_FALLBACK;
 };
 
-const hasCustomCopy = (value?: string | null): boolean => {
-  const trimmed = value?.trim();
-  return Boolean(trimmed && trimmed.length > 0);
+const SOCIAL_LINK_FIELDS = [
+  { key: 'linkedinUrl', label: 'LinkedIn' },
+  { key: 'facebookUrl', label: 'Facebook' },
+  { key: 'instagramUrl', label: 'Instagram' },
+  { key: 'quoraUrl', label: 'Quora' },
+  { key: 'mediumUrl', label: 'Medium' },
+  { key: 'youtubeUrl', label: 'YouTube' },
+  { key: 'otherSocialUrl', label: 'Website' }
+] as const;
+
+type SocialLinkKey = (typeof SOCIAL_LINK_FIELDS)[number]['key'];
+
+interface SocialLinkEntry {
+  key: SocialLinkKey;
+  label: string;
+  url: string;
+  display: string;
+}
+
+const deriveDisplayUrl = (value: string): string => {
+  try {
+    const parsed = new URL(value);
+    return parsed.hostname.replace(/^www\./i, '');
+  } catch {
+    return value;
+  }
 };
 
 interface ProfileCardProps {
@@ -37,7 +59,7 @@ export default function ProfileCard({
   disableLiveStatus,
   prefetchedStatus
 }: ProfileCardProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const {
     isOnline: liveOnline,
     hasActiveSession: liveActiveSession,
@@ -70,8 +92,9 @@ export default function ProfileCard({
     return undefined;
   })();
   const headlineCopy = ensureHumanCopy(profile.headline);
-  const bioCopy = ensureHumanCopy(profile.bio);
-  const hasCustomBio = hasCustomCopy(profile.bio);
+  const avatarSrc =
+    profile.avatarUrl ||
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name ?? 'Human')}&background=4f46e5&color=fff&size=128`;
   const contributionBlurb = useMemo(() => {
     if (managedConfidential) {
       return `${profile.name ?? 'This talent'} keeps these chats private. Send a request and their team will coordinate the details.`;
@@ -91,69 +114,114 @@ export default function ProfileCard({
   const secondaryLabel = managedConfidential ? 'Send Request' : 'Schedule';
   const secondaryClass = managedConfidential ? styles.requestButton : styles.secondaryButton;
 
-  return (
-    <article className={styles.card}>
-      <div className={styles.headerRow}>
-        <img
-          src={profile.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name ?? 'Human')}&background=4f46e5&color=fff&size=128`}
-          alt={profile.name}
-          className={styles.avatar}
-          loading="lazy"
-        />
-        <div className={styles.nameBlock}>
-          <strong className={styles.name}>{profile.name}</strong>
-          <p className={styles.headline}>{headlineCopy}</p>
-        </div>
-      </div>
+  const socialLinks = useMemo<SocialLinkEntry[]>(() => {
+    return SOCIAL_LINK_FIELDS.reduce<SocialLinkEntry[]>((acc, field) => {
+      const value = profile[field.key];
+      if (!value) {
+        return acc;
+      }
+      acc.push({
+        key: field.key,
+        label: field.label,
+        url: value,
+        display: deriveDisplayUrl(value)
+      });
+      return acc;
+    }, []);
+  }, [profile]);
 
-      <StatusBadge
-        isOnline={isOnline}
-        hasActiveSession={hasActiveSession}
-        presenceState={presenceState}
-      />
-
-      {bioCopy && (
-        <div className={clsx(styles.bio, !expanded && styles.bioCollapsed)}>
-          {bioCopy}
-          {!expanded && hasCustomBio && (
-            <button className={styles.readMore} type="button" onClick={() => setExpanded(true)}>
-              Read more
-            </button>
-          )}
+  const renderActions = (containerClass: string) => (
+    <div className={containerClass}>
+      {!managedConfidential && (
+        <div className={styles.tooltip}>
+          <button
+            className={styles.primaryButton}
+            type="button"
+            disabled={!canInstantConnect || Boolean(isConnecting)}
+            onClick={() => canInstantConnect && !isConnecting && onConnectNow?.(profile)}
+          >
+            {isConnecting ? 'Connecting…' : 'Connect Now'}
+          </button>
+          {tooltip && <span className={styles.tooltipText}>{tooltip}</span>}
         </div>
       )}
+      <button className={secondaryClass} type="button" onClick={() => onBookTime?.(profile)}>
+        {secondaryLabel}
+      </button>
+    </div>
+  );
 
-      <RateDisplay
-        conversationType={profile.conversationType}
-        confidentialRate={profile.confidentialRate}
-        displayMode={profile.displayMode}
-        instantRatePerMinute={profile.instantRatePerMinute}
-        scheduledRates={profile.scheduledRates}
-        isOnline={isOnline}
-        charityName={profile.charityName}
-        donationPreference={profile.donationPreference}
-      />
+  const closeDetails = () => setShowDetails(false);
 
-      {contributionBlurb && <p className={styles.sessionBlurb}>{contributionBlurb}</p>}
-
-      <div className={styles.actions}>
-        {!managedConfidential && (
-          <div className={styles.tooltip}>
-            <button
-              className={styles.primaryButton}
-              type="button"
-              disabled={!canInstantConnect || Boolean(isConnecting)}
-              onClick={() => canInstantConnect && !isConnecting && onConnectNow?.(profile)}
-            >
-              {isConnecting ? 'Connecting…' : 'Connect Now'}
-            </button>
-            {tooltip && <span className={styles.tooltipText}>{tooltip}</span>}
+  return (
+    <>
+      <article className={styles.card}>
+        <div className={styles.headerRow}>
+          <img src={avatarSrc} alt={profile.name} className={styles.avatar} loading="lazy" />
+          <div className={styles.nameBlock}>
+            <strong className={styles.name}>{profile.name}</strong>
+            <p className={styles.headline}>{headlineCopy}</p>
           </div>
-        )}
-        <button className={secondaryClass} type="button" onClick={() => onBookTime?.(profile)}>
-          {secondaryLabel}
+        </div>
+
+        <StatusBadge isOnline={isOnline} hasActiveSession={hasActiveSession} presenceState={presenceState} />
+
+        {renderActions(styles.actions)}
+
+        {contributionBlurb && <p className={styles.sessionBlurb}>{contributionBlurb}</p>}
+
+        <button className={styles.tertiaryButton} type="button" onClick={() => setShowDetails(true)}>
+          See full profile
         </button>
-      </div>
-    </article>
+      </article>
+
+      {showDetails && (
+        <div className={styles.fullProfileOverlay} role="dialog" aria-modal="true" onClick={closeDetails}>
+          <div className={styles.fullProfilePanel} onClick={(event) => event.stopPropagation()}>
+            <button className={styles.closeDetailsButton} type="button" aria-label="Close profile" onClick={closeDetails}>
+              ×
+            </button>
+            <div className={styles.fullProfileHeader}>
+              <img src={avatarSrc} alt={profile.name} className={styles.fullProfileAvatar} />
+              <div className={styles.fullProfileIdentity}>
+                <strong className={styles.fullProfileName}>{profile.name}</strong>
+                <p className={styles.fullProfileHeadline}>{headlineCopy}</p>
+              </div>
+            </div>
+
+            <div className={styles.fullProfileBody}>
+              <StatusBadge isOnline={isOnline} hasActiveSession={hasActiveSession} presenceState={presenceState} />
+              <RateDisplay
+                conversationType={profile.conversationType}
+                confidentialRate={profile.confidentialRate}
+                displayMode={profile.displayMode}
+                instantRatePerMinute={profile.instantRatePerMinute}
+                scheduledRates={profile.scheduledRates}
+                isOnline={isOnline}
+                charityName={profile.charityName}
+                donationPreference={profile.donationPreference}
+              />
+              {contributionBlurb && <p className={styles.sessionBlurb}>{contributionBlurb}</p>}
+
+              {socialLinks.length > 0 && (
+                <div className={styles.socialSection}>
+                  <h4>Find them online</h4>
+                  <div className={styles.socialLinksGrid}>
+                    {socialLinks.map((link) => (
+                      <a key={link.key} href={link.url} className={styles.socialLink} rel="noreferrer">
+                        <span className={styles.socialLabel}>{link.label}</span>
+                        <span className={styles.socialUrl}>{link.display}</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {renderActions(styles.overlayActions)}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

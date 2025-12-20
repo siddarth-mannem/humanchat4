@@ -63,6 +63,13 @@ export interface ProfileSummary {
   charityId?: string;
   charityStripeAccountId?: string;
   donationPreference?: 'on' | 'off';
+  linkedinUrl?: string | null;
+  facebookUrl?: string | null;
+  instagramUrl?: string | null;
+  quoraUrl?: string | null;
+  mediumUrl?: string | null;
+  youtubeUrl?: string | null;
+  otherSocialUrl?: string | null;
 }
 
 export interface SamShowcaseProfile {
