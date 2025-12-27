@@ -1,13 +1,13 @@
 # Backup & Restore Procedures
 
-## Database (Primary Cloud SQL Postgres)
-- **Backups**: Cloud SQL automated backups enabled (7-day retention) plus weekly logical dumps pushed to Cloudflare R2 via `pg_dump` GitHub Action.
-- **Verification**: Monthly restore test into a staging Cloud SQL instance with the same settings as production.
+## Database (Neon Postgres)
+- **Backups**: Neon’s point-in-time recovery (PITR) keeps 7 days of history. We still run weekly logical dumps via `pg_dump` to Cloudflare R2 as a secondary safety net.
+- **Verification**: Monthly smoke test by creating a disposable Neon branch from the latest PITR snapshot, running migrations, and pointing staging at that branch.
 - **Restore Steps**:
   1. Pause API + WS deploys.
-  2. Create a new Cloud SQL instance (or reset staging) with the desired snapshot/backup.
-  3. Import the latest dump: `pg_restore --clean --no-owner -d $DATABASE_URL latest.dump`.
-  4. Update `cloudsql-database-url` (and related secrets) in Secret Manager, redeploy Cloud Run services.
+  2. In the Neon console, create a branch from the desired PITR timestamp (or promote the most recent logical dump into a new branch).
+  3. Update the `neon-database-url` secret (and any Terraform/CI vars) to point at the new branch connection string.
+  4. Redeploy Cloud Run services so they pick up the refreshed secret.
 
 ## Redis (Upstash)
 - **Backups**: Built-in daily snapshot. Enable point-in-time (PITR) with 24h window.

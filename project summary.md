@@ -10,7 +10,7 @@
 - **Backend**: Express API with Firebase-authenticated sessions, Redis-backed WebSocket signaling, Stripe integration for paid chats, and Dexie-powered persistence on the client. Deployments target Cloud Run via the shared `Dockerfile` and `scripts/deploy-*.sh` helpers.
 - **Frontend**: Next.js 16 (`apps/web`) handles marketing, onboarding, settings, and chat. Component highlights include Booking flows, Sam concierge UI, ProfileCard, and AccountPreferencesForm.
 - **Testing**: Jest projects (`client`/`server`) + Playwright e2e (`e2e/chat-flow.spec.ts`). MSW mocks cover calendar/sam/payment endpoints. Run with `npm run test`, `npm run test:api`, and `npx playwright test`.
-- **Infrastructure**: Terraform manages Cloud Run services, domain mappings, Cloudflare DNS, Memorystore, and the Cloud SQL connector for the WebSocket service. Health probes live in `scripts/health-check.mjs`. Secrets still come from `.env` + `infra/terraform.tfvars` pending Secret Manager adoption.
+- **Infrastructure**: Terraform manages Cloud Run services, domain mappings, Cloudflare DNS, Memorystore, and the Neon-backed secret/env plumbing for the WebSocket service. Health probes live in `scripts/health-check.mjs`. Secrets still come from `.env` + `infra/terraform.tfvars` pending Secret Manager adoption.
 
 ## Priority Action Plan
 | Priority | Owner | Status | Notes |
@@ -22,7 +22,7 @@
 
 ## Supporting Work
 - Expand health-check automation so every Terraform apply captures custom-domain readiness.
-- Bring Cloud SQL (instance/users/secrets) fully under Terraform and retire the old Railway stack once parity is verified.
+- Finish codifying Neon (branches/users/secrets) under Terraform and retire the old Railway stack once parity is verified.
 - Document rollback procedures for DNS, Redis connectivity (ioredis `MaxRetriesPerRequestError`), and Cloud Run revisions.
 
 ## Next Steps
@@ -30,4 +30,4 @@
 2. Ship the logout fix behind a feature flag, monitor via Sentry metrics, and remove the flag once error rates drop.
 3. Add request lifecycle telemetry + MSW fixtures, then validate in Playwright before announcing reliability fixes.
 4. Finalize the spec for free-to-free connects, implement API + UI changes, and update Sam concierge scripts/tests accordingly.
-5. Continue codifying infra (Cloud SQL, Secret Manager, monitoring alerts) so deploys remain reproducible.
+5. Continue codifying infra (Neon, Secret Manager, monitoring alerts) so deploys remain reproducible.

@@ -17,7 +17,7 @@ Use this guide to configure production, staging, and local environments for Huma
 | Backend | `FIREBASE_PROJECT_ID` | Same Firebase project ID used by the admin SDK. |
 | Backend | `FIREBASE_CLIENT_EMAIL` | Service-account client email for Firebase Admin. |
 | Backend | `FIREBASE_PRIVATE_KEY` | Private key (escape `\n`) for Firebase Admin credentials. |
-| Backend | `DATABASE_URL` | Cloud SQL connection string (stored in Secret Manager as `cloudsql-database-url`). |
+| Backend | `DATABASE_URL` | Neon connection string (stored in Secret Manager as `neon-database-url`). |
 | Backend | `REDIS_URL` | Upstash Redis REST/Redis URL. |
 | Backend | `JWT_SECRET` | 32+ char secret for user tokens. |
 | Backend | `STRIPE_SECRET_KEY` | Live-mode Stripe secret. |
@@ -74,13 +74,12 @@ humanchat4/                          (root)
 6. Store master secrets in 1Password; reference them via GitHub Actions secrets (`VERCEL_TOKEN`, `GCP_SA_KEY`, etc.).
 7. Rotate secrets quarterly or immediately after an incident; update IaC variable files and provider dashboards.
 
-### Cloud SQL + Secret Manager
-1. Create the Cloud SQL instance (e.g., `loyal-env-475400-u0:us-central1:users`) and confirm the target database (default `postgres`).
-2. Reset or create a SQL user password, then store it in Secret Manager (`cloudsql-db-password`).
-3. Create the connection-string secret:
-	- `postgresql://postgres:<password>@/postgres?host=/cloudsql/<instance>` → `cloudsql-database-url`.
-4. When deploying Cloud Run, pass `CLOUD_SQL_INSTANCES=<instance>` and set `SET_SECRETS="DATABASE_URL=cloudsql-database-url:latest,..."` so the service mounts the connector and reads the secret directly.
-5. All environments (local, staging, production) use the same Cloud SQL connection secrets; Supabase is no longer part of the stack.
+### Neon + Secret Manager
+1. Create a Neon project + branch (production, staging, etc.) and enable the pooled connection string so Cloud Run keeps a stable number of TCP sessions.
+2. Generate a database user (e.g., `neondb_owner`) and copy the pooled connection string (`postgresql://user:password@ep-...-pooler.<region>.aws.neon.tech/db?sslmode=require&channel_binding=require`).
+3. Store that URI in Secret Manager as `neon-database-url` so CI/Cloud Run can reference it without checking in credentials.
+4. Because Neon is available over the public internet, no Cloud SQL connector or `--add-cloudsql-instances` flag is necessary. Just pass `SET_SECRETS="DATABASE_URL=neon-database-url:latest,..."` during `gcloud run deploy`.
+5. Use Neon branches for staging/test data. Since we only keep non-production data today, you can drop and recreate branches without migration risk.
 
 ## Promotion Flow
 - Update staging environment first, run smoke tests.

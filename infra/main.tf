@@ -79,7 +79,6 @@ module "api_service" {
   max_instances         = 3
   vpc_connector         = google_vpc_access_connector.cloud_run.name
   vpc_connector_egress  = "private-ranges-only"
-  cloud_sql_instances   = var.api_cloud_sql_instances
   service_account_email = data.google_compute_default_service_account.default.email
 }
 
@@ -94,7 +93,6 @@ module "ws_service" {
   max_instances         = 5
   vpc_connector         = google_vpc_access_connector.cloud_run.name
   vpc_connector_egress  = "private-ranges-only"
-  cloud_sql_instances   = var.api_cloud_sql_instances
   service_account_email = data.google_compute_default_service_account.default.email
 }
 
@@ -150,12 +148,6 @@ module "dns" {
   frontend_target = "cname.vercel-dns.com"
   api_target      = local.api_domain_target
   ws_target       = local.ws_domain_target
-}
-
-resource "google_project_iam_member" "cloud_run_cloudsql_client" {
-  project = var.gcp_project_id
-  role    = "roles/cloudsql.client"
-  member  = "serviceAccount:${data.google_compute_default_service_account.default.email}"
 }
 
 resource "google_project_iam_member" "cloud_run_vpcaccess" {

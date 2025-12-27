@@ -80,5 +80,5 @@ Full contract lives in `openapi.yaml` and summarized in `API_DOCS.md`.
 ## Operational Concerns
 - Deployments: Vercel (frontend) + Railway (API/WS). Terraform modules under `infra/`.
 - Observability: Sentry, Better Uptime, PostHog.
-- Scaling: Cloud Run autoscaling, Cloud SQL high-availability, Upstash multi-region.
+- Scaling: Cloud Run autoscaling, Neon serverless Postgres branching, Upstash multi-region.
 - Security: JWT auth, Redis-backed rate limiting, CSP + Helmet middleware.

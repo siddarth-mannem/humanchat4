@@ -22,7 +22,6 @@ MAX_INSTANCES=${MAX_INSTANCES:-}
 CPU=${CPU:-}
 MEMORY=${MEMORY:-}
 CONCURRENCY=${CONCURRENCY:-}
-CLOUD_SQL_INSTANCES=${CLOUD_SQL_INSTANCES:-}
 SET_SECRETS=${SET_SECRETS:-}
 
 IMAGE="us-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${SERVICE_NAME}:${IMAGE_TAG}"
@@ -48,10 +47,6 @@ if [[ -n "${ENV_FILE}" ]]; then
     exit 1
   fi
   deploy_cmd+=(--env-vars-file "${ENV_FILE}")
-fi
-
-if [[ -n "${CLOUD_SQL_INSTANCES}" ]]; then
-  deploy_cmd+=(--add-cloudsql-instances "${CLOUD_SQL_INSTANCES}")
 fi
 
 if [[ -n "${SET_SECRETS}" ]]; then

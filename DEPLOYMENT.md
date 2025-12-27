@@ -1,16 +1,11 @@
 # Deployment Guide
 
-This doc complements `docs/environment.md`, `docs/monitoring.md`, and the Terraform under `infra/`.
-
-## Environments
-- **Staging**: `staging.humanchat.com`, `api-staging.humanchat.com`, `ws-staging.humanchat.com`
-- **Production**: `humanchat.com`, `api.humanchat.com`, `ws.humanchat.com`
 
 ## Environment Variables
 See `docs/environment.md` for the master list. Provider-specific highlights:
 - `VERCEL_TOKEN`, `VERCEL_TEAM`
 - `GCP_PROJECT`, `GOOGLE_APPLICATION_CREDENTIALS` (service-account JSON for Cloud Run deploys)
-- Secret Manager entries: `cloudsql-database-url`, `cloudsql-db-password`
+- Secret Manager entries: `neon-database-url`
 - `CLOUDFLARE_TOKEN`, `CLOUDFLARE_ZONE_ID`
 - `UPSTASH_EMAIL`, `UPSTASH_API_KEY`
 
@@ -21,7 +16,7 @@ See `docs/environment.md` for the master list. Provider-specific highlights:
 2. On `main` success:
    - `scripts/deploy-web.sh` → Vercel production deploy.
    - `scripts/deploy-api.sh` (Cloud Run) builds/pushes the Docker image and deploys the HTTP/WebSocket service.
-   - `scripts/migrate.sh` (or `npm run db:migrate` in Cloud Shell) runs against Cloud SQL using the same credentials as the Cloud Run service.
+   - `scripts/migrate.sh` (or `npm run db:migrate` in Cloud Shell) runs against Neon using the same credentials as the Cloud Run service.
 3. Notify Slack channel once health checks pass.
 
 ## Pre-deploy Checklist
@@ -31,14 +26,11 @@ Run these steps locally (or in Cloud Shell) before any manual deploy:
 # 1. Ensure required secrets/env vars are present.
 ENV_FILE=.env.cloudrun ./scripts/verify-env.sh
 
-# 2. Sync secrets + run database migrations via the Cloud SQL proxy.
-ENV_FILE=.env.cloudrun INSTANCE_CONNECTION="loyal-env-475400-u0:us-central1:users" \
-   ./scripts/sync-env.sh
+# 2. Sync secrets + run database migrations against Neon.
+ENV_FILE=.env.cloudrun ./scripts/sync-env.sh
 ```
 
-`scripts/sync-env.sh` will source the specified env file, validate secrets, start the Cloud SQL Auth Proxy (downloading it if necessary), rewrite the local `DATABASE_URL` to use `127.0.0.1:<LOCAL_DB_PORT>`, and run `npm run db:migrate`. Override `LOCAL_DB_PORT` or `MIGRATE_CMD` if needed.
-
-> **Note:** `.env.cloudrun` uses `KEY=VALUE` pairs so the Next.js build step can load public env vars during Docker builds. Use `.env.cloudrun.yaml` (YAML map syntax) with `ENV_FILE=.env.cloudrun.yaml ./scripts/deploy-api.sh` so `gcloud run deploy --env-vars-file` accepts the config.
+`scripts/sync-env.sh` will source the specified env file, validate secrets, and run `npm run db:migrate` directly via your `DATABASE_URL`. If it detects a legacy Cloud SQL socket URL it still boots the proxy, but Neon deployments skip that branch entirely. Override `LOCAL_DB_PORT` or `MIGRATE_CMD` if needed.
 
 ## Terraform Workflow
 ```bash
@@ -55,16 +47,15 @@ Variables file should contain provider tokens and environment-specific URLs. Out
 ./scripts/verify-env.sh
 ./scripts/deploy-web.sh
 PROJECT_ID=<gcp-project> REGION=us-central1 SERVICE_NAME=humanchat-api \
-   CLOUD_SQL_INSTANCES="loyal-env-475400-u0:us-central1:users" \
-   SET_SECRETS="DATABASE_URL=cloudsql-database-url:latest,FIREBASE_PROJECT_ID=firebase-project-id:latest,FIREBASE_CLIENT_EMAIL=firebase-client-email:latest,FIREBASE_PRIVATE_KEY=firebase-private-key:latest" \
+   SET_SECRETS="DATABASE_URL=neon-database-url:latest,FIREBASE_PROJECT_ID=firebase-project-id:latest,FIREBASE_CLIENT_EMAIL=firebase-client-email:latest,FIREBASE_PRIVATE_KEY=firebase-private-key:latest" \
    ./scripts/deploy-api.sh
 ```
-Use `SET_SECRETS` to mix Cloud SQL (`DATABASE_URL`) with other sensitive values. If you still rely on a static env file for non-secret config, pass `ENV_FILE=.env.cloudrun` alongside the flags above. See `infra/google-cloud/README.md` for details.
+Use `SET_SECRETS` to mix the Neon `DATABASE_URL` with other sensitive values. If you still rely on a static env file for non-secret config, pass `ENV_FILE=.env.cloudrun` alongside the flags above. See `infra/google-cloud/README.md` for details.
 
 ## Rollback Procedures
 - **Frontend**: `vercel rollback --to <deployment-id>` or select previous build in dashboard.
 - **API/WS**: `gcloud run services list` → `gcloud run services update-traffic humanchat-api --to-revisions <rev>=100`.
-- **Database**: Restore from the latest Cloud SQL backup (see `docs/backup-restore.md`). Update `DATABASE_URL` secrets, redeploy API.
+- **Database**: Restore from the latest Neon PITR snapshot or branch (see `docs/backup-restore.md`). Update `DATABASE_URL` secrets, redeploy API.
 - **Feature flags**: Toggle via config service (future) or env vars.
 
 ## Post-Deploy Verification

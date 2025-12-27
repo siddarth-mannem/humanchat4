@@ -52,7 +52,7 @@ Example deploy:
 cat > .env.cloudrun <<'ENV'
 NODE_ENV=production
 PORT=8080
-DATABASE_URL=postgresql://user:password@/humanchat?host=/cloudsql/<project>:<region>:humanchat-sql&sslmode=disable
+DATABASE_URL=postgresql://neondb_owner:<password>@ep-example-pooler.us-east-1.aws.neon.tech/main?sslmode=require&channel_binding=require
 REDIS_URL=redis://...upstash...
 JWT_SECRET=...
 JWT_EXPIRES_IN=12h

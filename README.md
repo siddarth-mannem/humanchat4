@@ -17,12 +17,12 @@ Use `npm run test` to verify the suite before shipping.
 
 ## Tech Stack
 - **Frontend**: Next.js 16 (App Router), React 19, Tailwind, Zustand, React Query
-- **Backend**: Express 5, Node 18, PostgreSQL (Cloud SQL), Redis (Upstash)
+- **Backend**: Express 5, Node 18, PostgreSQL (Neon serverless), Redis (Upstash)
 - **Realtime**: WebSockets on Cloud Run + Redis pub/sub
 - **AI**: Google Gemini for Sam concierge orchestration
 - **Payments**: Stripe Connect + webhooks
 - **Testing**: Jest + React Testing Library, Playwright e2e, MSW, fake-indexeddb
-- **Infra**: Vercel (web), Google Cloud Run (API & WS), Cloud SQL for Postgres, Firebase Auth, Upstash Redis, Cloudflare DNS
+- **Infra**: Vercel (web), Google Cloud Run (API & WS), Neon Postgres, Firebase Auth, Upstash Redis, Cloudflare DNS
 
 ## Folder Structure
 
