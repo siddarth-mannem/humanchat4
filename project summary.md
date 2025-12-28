@@ -10,7 +10,7 @@
 - **Backend**: Express API with Firebase-authenticated sessions, Redis-backed WebSocket signaling, Stripe integration for paid chats, and Dexie-powered persistence on the client. Deployments target Cloud Run via the shared `Dockerfile` and `scripts/deploy-*.sh` helpers.
 - **Frontend**: Next.js 16 (`apps/web`) handles marketing, onboarding, settings, and chat. Component highlights include Booking flows, Sam concierge UI, ProfileCard, and AccountPreferencesForm.
 - **Testing**: Jest projects (`client`/`server`) + Playwright e2e (`e2e/chat-flow.spec.ts`). MSW mocks cover calendar/sam/payment endpoints. Run with `npm run test`, `npm run test:api`, and `npx playwright test`.
-- **Infrastructure**: Terraform manages Cloud Run services, domain mappings, Cloudflare DNS, Memorystore, and the Neon-backed secret/env plumbing for the WebSocket service. Health probes live in `scripts/health-check.mjs`. Secrets still come from `.env` + `infra/terraform.tfvars` pending Secret Manager adoption.
+- **Infrastructure**: Terraform manages Cloud Run services, domain mappings, Cloudflare DNS, Upstash Redis, and the Neon-backed secret/env plumbing for the WebSocket service. Health probes live in `scripts/health-check.mjs`. Secrets still come from `.env` + `infra/terraform.tfvars` pending Secret Manager adoption.
 
 ## Priority Action Plan
 | Priority | Owner | Status | Notes |

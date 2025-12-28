@@ -64,35 +64,43 @@ export const createRedisClient = (): Redis => {
   }
 
   if (!env.redisUrl) {
-    console.warn('[Redis] REDIS_URL missing; disabling Redis features until Memorystore is configured.');
+    console.warn('[Redis] REDIS_URL missing; Redis-backed features are disabled (configure Upstash or another provider).');
     return new NoopRedis() as unknown as Redis;
   }
 
+  let parsedUrl: URL | undefined;
+  try {
+    parsedUrl = new URL(env.redisUrl);
+  } catch (error) {
+    console.warn('[Redis] Failed to parse REDIS_URL; falling back to raw string.');
+  }
+
   console.info('[Redis] Initializing connection', {
-    url: env.redisUrl,
+    host: parsedUrl?.hostname ?? 'unknown',
+    port: parsedUrl?.port ?? '6379',
     useTls: env.redisUseTls,
     rejectUnauthorized: env.redisTlsRejectUnauthorized
   });
 
   let redisOptions: RedisOptions | undefined;
   if (env.redisUseTls) {
-    try {
-      const parsed = new URL(env.redisUrl);
+    const tlsHost = parsedUrl?.hostname;
+    if (tlsHost) {
       redisOptions = {
         tls: {
           rejectUnauthorized: env.redisTlsRejectUnauthorized,
-          servername: parsed.hostname
+          servername: tlsHost
         }
       };
-      console.info('[Redis] TLS enabled for Memorystore connection', {
-        host: parsed.hostname,
+      console.info('[Redis] TLS enabled for connection', {
+        host: tlsHost,
         rejectUnauthorized: env.redisTlsRejectUnauthorized
       });
-    } catch (error) {
-      console.warn('[Redis] Failed to parse REDIS_URL for TLS configuration, proceeding without TLS', error);
+    } else {
+      console.warn('[Redis] Unable to determine hostname for TLS configuration, proceeding without TLS');
     }
   } else {
-    console.info('[Redis] Connecting without TLS (Memorystore internal VPC)');
+    console.info('[Redis] Connecting without TLS');
   }
 
   const client = redisOptions ? new Redis(env.redisUrl, redisOptions) : new Redis(env.redisUrl);

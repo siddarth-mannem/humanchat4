@@ -77,9 +77,16 @@ humanchat4/                          (root)
 ### Neon + Secret Manager
 1. Create a Neon project + branch (production, staging, etc.) and enable the pooled connection string so Cloud Run keeps a stable number of TCP sessions.
 2. Generate a database user (e.g., `neondb_owner`) and copy the pooled connection string (`postgresql://user:password@ep-...-pooler.<region>.aws.neon.tech/db?sslmode=require&channel_binding=require`).
-3. Store that URI in Secret Manager as `neon-database-url` so CI/Cloud Run can reference it without checking in credentials.
-4. Because Neon is available over the public internet, no Cloud SQL connector or `--add-cloudsql-instances` flag is necessary. Just pass `SET_SECRETS="DATABASE_URL=neon-database-url:latest,..."` during `gcloud run deploy`.
-5. Use Neon branches for staging/test data. Since we only keep non-production data today, you can drop and recreate branches without migration risk.
+3. Store that URI in Secret Manager as `neon-database-url` so CI/Cloud Run can reference it without checking in credentials. Local `.env` files can use the same URI directly.
+4. Because Neon is available over the public internet, no Cloud SQL connector or `--add-cloudsql-instances` flag is necessary. Just pass `SET_SECRETS="DATABASE_URL=neon-database-url:latest,..."` during `gcloud run deploy` or bake it into Terraform variables.
+5. Use Neon branches for staging/test data. Since we only keep non-production data today, you can drop and recreate branches without migration risk. `npm run db:migrate` talks to Neon directly via the connection string, so no Cloud SQL proxy step is required anymore.
+
+### Upstash Redis
+1. In the Upstash console create a Redis database in the closest region (e.g., `us-central1`). Copy the `rediss://default:<token>@<host>:6379` connection string.
+2. Set `REDIS_URL` to that value in local `.env` files and store the same URI in Secret Manager (e.g., `upstash-redis-url`). Cloud Run jobs/services can then map `REDIS_URL=upstash-redis-url:latest` via `--set-secrets`.
+3. TLS is required by Upstash. If your URL begins with `rediss://`, the server auto-enables TLS, so you only need to override `REDIS_TLS` when testing locally without TLS. Keep `REDIS_TLS_REJECT_UNAUTHORIZED=true` unless you are debugging against a self-signed endpoint.
+4. Upstash is reachable over the public internet; no VPC connector or Memorystore subnet is needed anymore. Remove the old connector to simplify egress and avoid dangling network costs.
+5. Because we do not persist anything critical in Redis, switching databases is as simple as updating the `REDIS_URL` secret and redeploying. No snapshot restore is required.
 
 ## Promotion Flow
 - Update staging environment first, run smoke tests.

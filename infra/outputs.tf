@@ -9,8 +9,3 @@ output "api_hostname" {
 output "ws_hostname" {
   value = module.ws_service.hostname
 }
-
-output "redis_url" {
-  value     = format("redis://%s:%s", module.redis.host, module.redis.port)
-  sensitive = true
-}

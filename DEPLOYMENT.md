@@ -5,7 +5,7 @@
 See `docs/environment.md` for the master list. Provider-specific highlights:
 - `VERCEL_TOKEN`, `VERCEL_TEAM`
 - `GCP_PROJECT`, `GOOGLE_APPLICATION_CREDENTIALS` (service-account JSON for Cloud Run deploys)
-- Secret Manager entries: `neon-database-url`
+- Secret Manager entries: `neon-database-url`, `upstash-redis-url` (or equivalent `REDIS_URL` secret)
 - `CLOUDFLARE_TOKEN`, `CLOUDFLARE_ZONE_ID`
 - `UPSTASH_EMAIL`, `UPSTASH_API_KEY`
 
@@ -30,7 +30,11 @@ ENV_FILE=.env.cloudrun ./scripts/verify-env.sh
 ENV_FILE=.env.cloudrun ./scripts/sync-env.sh
 ```
 
-`scripts/sync-env.sh` will source the specified env file, validate secrets, and run `npm run db:migrate` directly via your `DATABASE_URL`. If it detects a legacy Cloud SQL socket URL it still boots the proxy, but Neon deployments skip that branch entirely. Override `LOCAL_DB_PORT` or `MIGRATE_CMD` if needed.
+`scripts/sync-env.sh` will source the specified env file, validate secrets, and run `npm run db:migrate` directly via your `DATABASE_URL`. If it detects a legacy Cloud SQL socket URL it still boots the proxy, but Neon deployments skip that branch entirely because the pooled URI is internet-accessible.
+
+### Database & Redis secrets
+- **Neon**: store the pooled URI in Secret Manager as `neon-database-url`. Both Cloud Run services and ad-hoc jobs should reference `DATABASE_URL=neon-database-url:latest` via `--set-secrets` (or Terraform `env_variables`).
+- **Upstash Redis**: create an `upstash-redis-url` secret that contains the `rediss://default:<token>@host:6379` value. Set `REDIS_URL=upstash-redis-url:latest` when deploying and keep `REDIS_TLS[_REJECT_UNAUTHORIZED]` env vars at their defaults unless you are debugging against a self-signed instance. No Memorystore/VPC connector is required anymore because Upstash is public.
 
 ## Terraform Workflow
 ```bash
@@ -47,7 +51,7 @@ Variables file should contain provider tokens and environment-specific URLs. Out
 ./scripts/verify-env.sh
 ./scripts/deploy-web.sh
 PROJECT_ID=<gcp-project> REGION=us-central1 SERVICE_NAME=humanchat-api \
-   SET_SECRETS="DATABASE_URL=neon-database-url:latest,FIREBASE_PROJECT_ID=firebase-project-id:latest,FIREBASE_CLIENT_EMAIL=firebase-client-email:latest,FIREBASE_PRIVATE_KEY=firebase-private-key:latest" \
+   SET_SECRETS="DATABASE_URL=neon-database-url:latest,REDIS_URL=upstash-redis-url:latest,FIREBASE_PROJECT_ID=firebase-project-id:latest,FIREBASE_CLIENT_EMAIL=firebase-client-email:latest,FIREBASE_PRIVATE_KEY=firebase-private-key:latest" \
    ./scripts/deploy-api.sh
 ```
 Use `SET_SECRETS` to mix the Neon `DATABASE_URL` with other sensitive values. If you still rely on a static env file for non-secret config, pass `ENV_FILE=.env.cloudrun` alongside the flags above. See `infra/google-cloud/README.md` for details.
