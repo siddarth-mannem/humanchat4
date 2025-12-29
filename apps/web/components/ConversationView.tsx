@@ -12,6 +12,7 @@ import BookingModal from './BookingModal';
 import RequestForm from './RequestForm';
 import { connectNow as connectNowWithProfile } from '../services/conversationClient';
 import { sessionStatusManager } from '../services/sessionStatusManager';
+import { SAM_DISPLAY_NAME } from '../hooks/useConversationData';
 
 interface ConversationViewProps {
   activeConversationId?: string;
@@ -112,7 +113,7 @@ export default function ConversationView({ activeConversationId, onSelectConvers
     const humanTitle = peerLabels.length > 0 ? peerLabels.join(', ') : orderedLabels.join(', ');
 
     return {
-      title: conversation.type === 'sam' ? 'Sam Concierge' : humanTitle,
+      title: conversation.type === 'sam' ? SAM_DISPLAY_NAME : humanTitle,
       subtitle: conversation.type === 'sam' ? 'AI Concierge' : 'Direct chat'
     };
   }, [activeConversationId, conversation, currentUserId]);

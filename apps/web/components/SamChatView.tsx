@@ -9,7 +9,7 @@ import MessageBubble from './MessageBubble';
 import ActionRenderer from './ActionRenderer';
 import VirtualMessageList from './VirtualMessageList';
 import { notifyNewMessage } from '../utils/notifications';
-import { SAM_CONCIERGE_ID, SAM_FALLBACK_CONVERSATION } from '../hooks/useConversationData';
+import { SAM_CONCIERGE_ID, SAM_FALLBACK_CONVERSATION, SAM_DISPLAY_NAME } from '../hooks/useConversationData';
 import { fetchWithAuthRefresh } from '../utils/fetchWithAuthRefresh';
 import { sessionStatusManager } from '../services/sessionStatusManager';
 
@@ -429,7 +429,7 @@ export default function SamChatView({
       actions,
       timestamp: Date.now()
     });
-    await notifyNewMessage('Sam Concierge', content);
+    await notifyNewMessage(SAM_DISPLAY_NAME, content);
   };
 
   const handleCreateSessionAction = async (nextConversation: Conversation, session: Session) => {

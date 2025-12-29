@@ -47,6 +47,11 @@
   line-height: 1.4;
 }
 
+.headerTimestamp {
+  display: block;
+  margin-bottom: 6px;
+}
+
 .avatar img {
   width: 100%;
   height: 100%;

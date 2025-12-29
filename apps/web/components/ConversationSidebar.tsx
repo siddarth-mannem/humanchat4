@@ -172,11 +172,10 @@ export default function ConversationSidebar({
     <aside className={clsx(styles.sidebar, collapsed && styles.sidebarCollapsed)}>
       <div className={styles.header}>
         <div>
-          <p className={styles.headerEyebrow}>Workspace</p>
+          <span className={clsx(styles.timestamp, styles.headerTimestamp)}>{formattedDate}</span>
           <span className={styles.headerTitle}>Conversations</span>
           <p className={styles.headerSubtitle}>Your concierge plus every human connection</p>
         </div>
-        <span className={styles.timestamp}>{formattedDate}</span>
       </div>
       <div
         className={styles.scroller}

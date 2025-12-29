@@ -28,12 +28,13 @@ const buildInitials = (name: string): string => {
 };
 
 export const SAM_CONCIERGE_ID = 'sam-concierge';
+export const SAM_DISPLAY_NAME = 'Simple Sam';
 
 export const SAM_FALLBACK_CONVERSATION: Conversation = {
   conversationId: SAM_CONCIERGE_ID,
   type: 'sam',
   participants: ['sam'],
-  participantLabels: { sam: 'Sam Concierge' },
+  participantLabels: { sam: SAM_DISPLAY_NAME },
   lastActivity: Date.now(),
   unreadCount: 0
 };
@@ -294,7 +295,7 @@ export const useConversationData = () => {
         {
           conversation: SAM_FALLBACK_CONVERSATION,
           meta: {
-            displayName: 'Sam Concierge',
+            displayName: SAM_DISPLAY_NAME,
             initials: 'SAM',
             lastMessage: 'Need anything? I can help you prep.',
             relativeTimestamp: 'just now'
@@ -313,7 +314,7 @@ export const useConversationData = () => {
       const status = buildStatus(session ?? undefined);
       const lastMessage = lastMessages[conversation.conversationId]?.content ?? '';
       const displayName =
-        conversation.type === 'sam' ? 'Sam Concierge' : buildParticipantNames(conversation, currentUserId).join(', ');
+        conversation.type === 'sam' ? SAM_DISPLAY_NAME : buildParticipantNames(conversation, currentUserId).join(', ');
       
       // Extract avatar URL for the first peer (non-current user)
       const peerIds = conversation.participants.filter((id) => id !== currentUserId);
@@ -339,7 +340,7 @@ export const useConversationData = () => {
       {
         conversation: samConversation,
         meta: {
-          displayName: 'Sam Concierge',
+          displayName: SAM_DISPLAY_NAME,
           initials: 'SAM',
           lastMessage: 'Need anything? I can help you prep.',
           relativeTimestamp: formatRelativeTimestamp(samConversation.lastActivity)

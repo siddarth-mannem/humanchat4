@@ -218,9 +218,8 @@ const ChatShell = () => {
 
   return (
     <main className="flex h-screen min-h-screen flex-col overflow-hidden bg-midnight text-white">
-      <header className="sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b border-white/10 bg-midnight px-4 py-3 text-xs uppercase tracking-[0.3em] text-white/60">
-        <span>Chat Window</span>
-        {isTablet && (
+      {isTablet && (
+        <header className="sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b border-white/10 bg-midnight px-4 py-3 text-xs uppercase tracking-[0.3em] text-white/60">
           <button
             type="button"
             className="rounded-full border border-white/20 px-3 py-1 text-[11px] normal-case tracking-normal text-white"
@@ -228,8 +227,8 @@ const ChatShell = () => {
           >
             {sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           </button>
-        )}
-      </header>
+        </header>
+      )}
 
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {!isMobile && (
