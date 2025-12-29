@@ -161,6 +161,24 @@ export const ensureSamConversation = async (userId: string): Promise<Conversatio
   return insert.rows[0];
 };
 
+export const hasSamRespondedToUser = async (userId: string): Promise<boolean> => {
+  ensureUserIdIsUuid(userId, 'User id');
+
+  const result = await query<{ exists: boolean }>(
+    `SELECT EXISTS(
+        SELECT 1
+        FROM messages m
+        JOIN conversations c ON m.conversation_id = c.id
+        WHERE c.type = 'sam'
+          AND $1 = ANY(c.participants)
+          AND m.message_type = 'sam_response'
+      ) AS exists`,
+    [userId]
+  );
+
+  return result.rows[0]?.exists ?? false;
+};
+
 const findHumanConversationBetween = async (userA: string, userB: string): Promise<Conversation | null> => {
   const result = await query<Conversation>(
     `SELECT *

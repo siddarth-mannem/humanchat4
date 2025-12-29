@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { addConversationMessage, ensureSamConversation } from './conversationService.js';
+import { addConversationMessage, ensureSamConversation, hasSamRespondedToUser } from './conversationService.js';
 import { sendToSam } from './samAPI.js';
 import { SamResponse, SamChatResult } from '../types/index.js';
 import { searchUsers } from './userService.js';
@@ -42,6 +42,8 @@ export type SamPayload = z.infer<typeof SamPayloadSchema>;
 
 const REQUEST_REGEX = /(?:talk|speak|chat|connect|book)\s+(?:to|with)\s+([A-Za-z][A-Za-z\s.'-]{2,})/i;
 const SAM_CONCIERGE_ID = 'sam-concierge';
+const SAM_INTRO_MESSAGE =
+  'Hi, I’m Sam — a super-intelligent AI chatbot. I know more than any human could, but if you prefer talking to real humans, I can connect you with a real human according to your needs. So, what’s up?';
 
 const normalizeSamActions = (
   actions: unknown
@@ -155,6 +157,8 @@ export const handleSamChat = async (conversationId: string, userId: string, payl
 
   await persistMessage(userId, parsed.message, 'user_text');
 
+  const userHasHeardIntro = await hasSamRespondedToUser(userId);
+
   const intercepted = await maybeHandleRequestedPerson(userId, parsed.message);
   logger.info('Sam concierge dispatching Gemini request', {
     conversationId: activeConversationId,
@@ -163,13 +167,26 @@ export const handleSamChat = async (conversationId: string, userId: string, payl
     hasContext: Boolean(parsed.userContext)
   });
 
-  const response =
-    intercepted ??
-    (await sendToSam({
-      userMessage: parsed.message,
-      conversationHistory: parsed.conversationHistory,
-      userContext: parsed.userContext
-    }));
+  let response: SamResponse;
+  if (!userHasHeardIntro) {
+    response = {
+      text: SAM_INTRO_MESSAGE,
+      actions: [
+        {
+          type: 'follow_up_prompt',
+          prompt: 'Tell me what you need and I will route it.'
+        }
+      ]
+    };
+  } else {
+    response =
+      intercepted ??
+      (await sendToSam({
+        userMessage: parsed.message,
+        conversationHistory: parsed.conversationHistory,
+        userContext: parsed.userContext
+      }));
+  }
 
   logger.info('Sam concierge response received', {
     conversationId: activeConversationId,
