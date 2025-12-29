@@ -176,7 +176,7 @@ export default function ConversationView({ activeConversationId, onSelectConvers
           <div className={styles.title}>{summary.title}</div>
           <div className={styles.subtitle}>{summary.subtitle}</div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div className={styles.headerActions}>
           {otherParticipant && (
             <button
               type="button"
@@ -188,7 +188,7 @@ export default function ConversationView({ activeConversationId, onSelectConvers
             </button>
           )}
           {conversation && (
-            <div className={styles.metadata}>
+            <div className={clsx(styles.metadata, styles.headerActionsMetadata)}>
               Last activity • {new Date(conversation.lastActivity).toLocaleTimeString()}
             </div>
           )}
