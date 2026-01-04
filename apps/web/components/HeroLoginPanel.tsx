@@ -82,7 +82,7 @@ const HeroLoginPanel = (_: HeroLoginPanelProps, ref: ForwardedRef<HeroLoginPanel
 
   if (identity) {
     return (
-      <section className="h-full rounded-[28px] bg-white/5 p-6">
+      <section className="h-full p-6">
         <p className="text-xs uppercase tracking-[0.35em] text-white/60">You are signed in</p>
         <h2 className="mt-3 font-display text-2xl text-white">Ready whenever you are</h2>
         <p className="mt-2 text-sm text-white/70">
@@ -99,9 +99,9 @@ const HeroLoginPanel = (_: HeroLoginPanelProps, ref: ForwardedRef<HeroLoginPanel
   }
 
   return (
-    <section id="login-panel" className="h-full rounded-[28px] bg-black/40 p-6">
+    <section id="login-panel" className="h-full p-6">
       <h2 className="mt-3 font-display text-2xl text-white">
-        Please login to talk to our AI Receptionist Simple Sam who can connect you with humans based on your specifics.
+        Log in to talk to Simple Sam (AI), who connects you with humans based on your specifics.
       </h2>
 
       <div className="mt-6 space-y-4">
