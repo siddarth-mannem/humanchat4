@@ -18,8 +18,8 @@ export default function HeroExperience() {
         </div>
 
         <p className="mt-8 max-w-2xl text-base text-white/60 sm:text-lg">
-          AI can do a lot of things but, can AI be human? We don't think so and that's why we are bringing humans together to
-          talk to instead of just AI bots.
+          AI can do a lot of things, but can it ever be truly human? We don’t think so, and that’s why we are working to bring
+          all the humans on Earth together to talk to each other instead of just AI bots.
         </p>
       </div>
 
