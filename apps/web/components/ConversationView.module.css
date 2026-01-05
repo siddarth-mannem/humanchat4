@@ -12,7 +12,7 @@
 .mobileContainer {
   min-height: 0;
   height: 100%;
-  padding-bottom: 80px;
+  padding-bottom: calc(80px + env(safe-area-inset-bottom));
 }
 
 .placeholder {
@@ -46,7 +46,10 @@
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  padding: 0;
+  padding: 8px 0;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
 }
 
 .scheduleButton {
@@ -186,10 +189,10 @@
 .drawerButton {
   border: 1px solid #e5e7eb;
   border-radius: 9999px;
-  padding: 6px 12px;
+  padding: 8px 16px;
   font-size: 14px;
   background: #fff;
-}
+  min-height: 44px;
   transition: transform 0.15s ease, opacity 0.15s ease;
 }
 
@@ -617,6 +620,13 @@
   backdrop-filter: blur(16px);
 }
 
+@media (max-width: 767px) {
+  .inputBar {
+    padding: 12px 16px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+}
+
 .inputBar textarea {
   flex: 1;
   background: rgba(15, 23, 42, 0.7);
@@ -797,6 +807,13 @@
   display: flex;
   gap: 12px;
   background: rgba(2, 6, 23, 0.75);
+}
+
+@media (max-width: 767px) {
+  .chatInputBar {
+    padding: 12px 16px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
 }
 
 .chatInputBar textarea {
@@ -1025,14 +1042,15 @@
 
 @media (max-width: 767px) {
   .container {
-    min-height: calc(100vh - 72px);
+    min-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   }
 
   .header {
     flex-direction: column;
     gap: 8px;
     align-items: flex-start;
-    padding: 16px;
+    padding: 12px 16px;
+    padding-top: calc(12px + env(safe-area-inset-top));
   }
 
   .viewArea {
@@ -1041,11 +1059,13 @@
 
   .messageList {
     padding: 16px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
   }
 
   .inputBar,
   .chatInputBar {
     flex-direction: column;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
   }
 
   .inputBar button,

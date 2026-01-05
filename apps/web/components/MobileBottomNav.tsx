@@ -18,14 +18,18 @@ const NAV_ITEMS: Array<{ key: MobileNavRoute; label: string }> = [
 
 export default function MobileBottomNav({ active, onChange, hasUnread }: MobileBottomNavProps) {
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-black/80 backdrop-blur-xl" aria-label="Primary navigation">
+    <nav 
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-black/80 backdrop-blur-xl" 
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      aria-label="Primary navigation"
+    >
       <div className="grid grid-cols-3">
         {NAV_ITEMS.map((item) => (
           <button
             key={item.key}
             type="button"
             className={clsx(
-              'flex flex-col items-center justify-center gap-1 py-3 text-xs font-semibold tracking-wide transition',
+              'flex flex-col items-center justify-center gap-1 py-3 px-2 text-xs font-semibold tracking-wide transition min-h-[44px] touch-manipulation',
               active === item.key ? 'text-white' : 'text-white/60'
             )}
             aria-label={item.label}

@@ -48,6 +48,24 @@ html[data-contrast='high'] {
     -webkit-text-size-adjust: 100%;
   }
 
+  @supports (height: 100dvh) {
+    @media (max-width: 767px) {
+      body {
+        min-height: 100dvh;
+      }
+    }
+  }
+
+  /* Mobile safe area support */
+  @supports (padding: env(safe-area-inset-top)) {
+    @media (max-width: 767px) {
+      html {
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+    }
+  }
+
   main {
     @apply min-h-screen;
   }
@@ -56,6 +74,7 @@ html[data-contrast='high'] {
   a {
     min-height: 44px;
     min-width: 44px;
+    touch-action: manipulation;
   }
 
   *:focus-visible {

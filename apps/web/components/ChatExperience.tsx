@@ -6,6 +6,7 @@ import clsx from 'clsx';
 import ConversationSidebar from './ConversationSidebar';
 import ConversationView from './ConversationView';
 import ProfilePanel from './ProfilePanel';
+import MobileBottomNav, { type MobileNavRoute } from './MobileBottomNav';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { useConversationData } from '../hooks/useConversationData';
 import { useChatRequests } from '../hooks/useChatRequests';
@@ -19,6 +20,7 @@ const ChatShell = () => {
   const [activeConversationId, setActiveConversationId] = useState<string | undefined>();
   const [shouldOpenSam, setShouldOpenSam] = useState(false);
   const [mobileDrawer, setMobileDrawer] = useState<'none' | 'conversations' | 'profile'>('none');
+  const [mobileNavRoute, setMobileNavRoute] = useState<MobileNavRoute>('home');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const { isMobile, isTablet } = useBreakpoint();
   const { conversations } = useConversationData();
@@ -37,6 +39,42 @@ const ChatShell = () => {
 
   const samConversationId = useMemo(() => {
     return conversations.find((entry) => entry.conversation.type === 'sam')?.conversation.conversationId ?? 'sam-concierge';
+  }, [conversations]);
+
+  // Determine mobile nav route based on active conversation
+  useEffect(() => {
+    if (!isMobile) return;
+    if (shouldOpenSam || activeConversationId === samConversationId) {
+      setMobileNavRoute('sam');
+    } else if (activeConversationId) {
+      setMobileNavRoute('home');
+    }
+  }, [isMobile, activeConversationId, samConversationId, shouldOpenSam]);
+
+  const handleMobileNavChange = useCallback(
+    (route: MobileNavRoute) => {
+      setMobileNavRoute(route);
+      if (route === 'sam') {
+        setShouldOpenSam(true);
+        setActiveConversationId(samConversationId);
+        setMobileDrawer('none');
+      } else if (route === 'home') {
+        setShouldOpenSam(false);
+        const firstConversationId = conversations.find((entry) => entry.conversation.type !== 'sam')?.conversation.conversationId;
+        if (firstConversationId) {
+          setActiveConversationId(firstConversationId);
+        }
+        setMobileDrawer('none');
+      } else if (route === 'account') {
+        setMobileDrawer('profile');
+      }
+    },
+    [samConversationId, conversations]
+  );
+
+  // Check for unread messages
+  const hasUnread = useMemo(() => {
+    return conversations.some((entry) => entry.conversation.unreadCount > 0);
   }, [conversations]);
 
   useEffect(() => {
@@ -205,7 +243,7 @@ const ChatShell = () => {
   );
 
   return (
-    <main className="flex h-screen min-h-screen flex-col overflow-hidden bg-midnight text-white">
+    <main className={clsx('flex flex-col overflow-hidden bg-midnight text-white', isMobile ? 'h-[100dvh]' : 'h-screen min-h-screen')}>
       {isTablet && (
         <header className="sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b border-white/10 bg-midnight px-4 py-3 text-xs uppercase tracking-[0.3em] text-white/60">
           <button
@@ -356,6 +394,9 @@ const ChatShell = () => {
           </>
         )}
       </div>
+      {isMobile && (
+        <MobileBottomNav active={mobileNavRoute} onChange={handleMobileNavChange} hasUnread={hasUnread} />
+      )}
     </main>
   );
 };
