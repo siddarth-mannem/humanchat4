@@ -8,7 +8,7 @@ export default function HeroExperience() {
   const loginPanelRef = useRef<HeroLoginPanelHandle>(null);
 
   return (
-    <div className="flex h-full w-full flex-col gap-6 overflow-hidden bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.25),transparent_55%)] p-5 shadow-[0_40px_120px_rgba(2,6,23,0.75)] sm:gap-8 sm:p-8 lg:grid lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.85fr)] lg:gap-10 lg:p-12">
+    <div className="flex w-full flex-col gap-6 bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.25),transparent_55%)] p-5 shadow-[0_40px_120px_rgba(2,6,23,0.75)] sm:gap-8 sm:p-8 lg:grid lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.85fr)] lg:gap-10 lg:p-12 lg:min-h-[600px]">
       <div className="flex flex-col justify-center gap-5 lg:gap-6">
         <div>
           <p className="text-xs uppercase tracking-[0.5em] text-white/60">HumanChat</p>
