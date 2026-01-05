@@ -82,7 +82,7 @@ const HeroLoginPanel = (_: HeroLoginPanelProps, ref: ForwardedRef<HeroLoginPanel
 
   if (identity) {
     return (
-      <section className="h-full rounded-[28px] border border-white/10 bg-white/5 p-6">
+      <section className="flex flex-col rounded-[28px] border border-white/10 bg-white/5 p-5 sm:p-6 lg:h-full">
         <p className="text-xs uppercase tracking-[0.35em] text-white/60">You are signed in</p>
         <h2 className="mt-3 font-display text-2xl text-white">Ready whenever you are</h2>
         <p className="mt-2 text-sm text-white/70">
@@ -99,12 +99,12 @@ const HeroLoginPanel = (_: HeroLoginPanelProps, ref: ForwardedRef<HeroLoginPanel
   }
 
   return (
-    <section id="login-panel" className="h-full rounded-[28px] border border-white/10 bg-black/40 p-6">
-      <h2 className="mt-3 font-display text-2xl text-white">
+    <section id="login-panel" className="flex flex-col rounded-[28px] border border-white/10 bg-black/40 p-5 sm:p-6 lg:h-full">
+      <h2 className="mt-2 font-display text-2xl leading-tight text-white">
         Log in to talk to Simple Sam (AI), who connects you with humans based on your specifics.
       </h2>
 
-      <div className="mt-6 space-y-4">
+      <div className="mt-5 flex flex-col gap-4 sm:mt-6">
         <button
           type="button"
           onClick={handleGoogleSignIn}
