@@ -75,12 +75,12 @@ export default function SessionView({ conversation, session, invite, messages, r
     return (
       <div className={styles.humanView}>
         {invitePanel}
-        <div className={styles.pendingSessionNotice}>
-          <p className={styles.pendingSessionTitle}>
-            {invite?.status === 'pending' ? 'Waiting for a host to accept' : 'Live room not started yet'}
-          </p>
-          <p className={styles.pendingSessionSub}>Keep chatting here while we spin up the live room.</p>
-        </div>
+        {invite?.status === 'pending' && (
+          <div className={styles.pendingSessionNotice}>
+            <p className={styles.pendingSessionTitle}>Waiting for a host to accept</p>
+            <p className={styles.pendingSessionSub}>Keep chatting here while we wait.</p>
+          </div>
+        )}
         <div className={styles.chatSection}>
           <ChatArea
             conversation={conversation}

@@ -94,7 +94,7 @@ export const connectNow = async (profile: ProfileSummary, currentUserId: string)
     await db.sessions.put(sessionRecord);
     await addMessage(conversationRecord.conversationId, {
       senderId: 'sam',
-      content: `${profile.name ?? 'Your host'} is getting ready to join you now.`,
+      content: `Session starting now with ${profile.name ?? 'your host'}.`,
       type: 'system_notice',
       timestamp: Date.now()
     });
