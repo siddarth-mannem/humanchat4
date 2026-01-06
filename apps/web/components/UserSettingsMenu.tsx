@@ -2,12 +2,10 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
 
 import LogoutButton from './LogoutButton';
 import { useAuthIdentity } from '../hooks/useAuthIdentity';
-import { useBreakpoint } from '../hooks/useBreakpoint';
 
 const getInitials = (name?: string | null, email?: string | null) => {
   if (name) {
@@ -28,11 +26,6 @@ export default function UserSettingsMenu() {
   const [open, setOpen] = useState(false);
   const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { identity, loading } = useAuthIdentity();
-  const pathname = usePathname();
-  const { isMobile } = useBreakpoint();
-  
-  // Hide on mobile when in chat view (header has account button)
-  const shouldHide = isMobile && pathname === '/chat';
 
   const clearHoverTimeout = () => {
     if (hoverTimeout.current) {
@@ -60,10 +53,6 @@ export default function UserSettingsMenu() {
       clearHoverTimeout();
     };
   }, []);
-
-  if (shouldHide) {
-    return null;
-  }
 
   return (
     <div
