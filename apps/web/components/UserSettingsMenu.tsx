@@ -36,7 +36,7 @@ export default function UserSettingsMenu({ variant = 'default' }: UserSettingsMe
   const { isMobile } = useBreakpoint();
   
   // Hide in layout when on mobile in chat view (it will be shown in header instead)
-  const shouldHideInLayout = variant === 'default' && isMobile && pathname === '/chat';
+  const shouldHideInLayout = variant === 'default' && isMobile && pathname?.startsWith('/chat');
 
   const clearHoverTimeout = () => {
     if (hoverTimeout.current) {
