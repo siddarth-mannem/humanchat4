@@ -30,13 +30,27 @@ interface UserSettingsMenuProps {
 
 export default function UserSettingsMenu({ variant = 'default' }: UserSettingsMenuProps) {
   const [open, setOpen] = useState(false);
+  const [shouldHide, setShouldHide] = useState(() => {
+    // Initial check: if we're on client and pathname matches, hide it
+    if (typeof window !== 'undefined' && variant === 'default') {
+      const path = window.location.pathname;
+      return path?.startsWith('/chat') && window.innerWidth < 768;
+    }
+    return false;
+  });
   const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { identity, loading } = useAuthIdentity();
   const pathname = usePathname();
   const { isMobile } = useBreakpoint();
   
   // Hide in layout when on mobile in chat view (it will be shown in header instead)
-  const shouldHideInLayout = variant === 'default' && isMobile && pathname?.startsWith('/chat');
+  useEffect(() => {
+    if (variant === 'default' && isMobile && pathname?.startsWith('/chat')) {
+      setShouldHide(true);
+    } else {
+      setShouldHide(false);
+    }
+  }, [variant, isMobile, pathname]);
 
   const clearHoverTimeout = () => {
     if (hoverTimeout.current) {
@@ -65,7 +79,8 @@ export default function UserSettingsMenu({ variant = 'default' }: UserSettingsMe
     };
   }, []);
 
-  if (shouldHideInLayout) {
+  // Hide in layout when on mobile in chat view
+  if (shouldHide) {
     return null;
   }
 
