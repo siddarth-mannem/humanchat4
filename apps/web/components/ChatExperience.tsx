@@ -6,7 +6,6 @@ import clsx from 'clsx';
 import ConversationSidebar from './ConversationSidebar';
 import ConversationView from './ConversationView';
 import ProfilePanel from './ProfilePanel';
-import MobileBottomNav, { type MobileNavRoute } from './MobileBottomNav';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { useConversationData } from '../hooks/useConversationData';
 import { useChatRequests } from '../hooks/useChatRequests';
@@ -20,7 +19,6 @@ const ChatShell = () => {
   const [activeConversationId, setActiveConversationId] = useState<string | undefined>();
   const [shouldOpenSam, setShouldOpenSam] = useState(false);
   const [mobileDrawer, setMobileDrawer] = useState<'none' | 'conversations' | 'profile'>('none');
-  const [mobileNavRoute, setMobileNavRoute] = useState<MobileNavRoute>('home');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const { isMobile, isTablet } = useBreakpoint();
   const { conversations } = useConversationData();
@@ -41,41 +39,6 @@ const ChatShell = () => {
     return conversations.find((entry) => entry.conversation.type === 'sam')?.conversation.conversationId ?? 'sam-concierge';
   }, [conversations]);
 
-  // Determine mobile nav route based on active conversation
-  useEffect(() => {
-    if (!isMobile) return;
-    if (shouldOpenSam || activeConversationId === samConversationId) {
-      setMobileNavRoute('sam');
-    } else if (activeConversationId) {
-      setMobileNavRoute('home');
-    }
-  }, [isMobile, activeConversationId, samConversationId, shouldOpenSam]);
-
-  const handleMobileNavChange = useCallback(
-    (route: MobileNavRoute) => {
-      setMobileNavRoute(route);
-      if (route === 'sam') {
-        setShouldOpenSam(true);
-        setActiveConversationId(samConversationId);
-        setMobileDrawer('none');
-      } else if (route === 'home') {
-        setShouldOpenSam(false);
-        const firstConversationId = conversations.find((entry) => entry.conversation.type !== 'sam')?.conversation.conversationId;
-        if (firstConversationId) {
-          setActiveConversationId(firstConversationId);
-        }
-        setMobileDrawer('none');
-      } else if (route === 'account') {
-        setMobileDrawer('profile');
-      }
-    },
-    [samConversationId, conversations]
-  );
-
-  // Check for unread messages
-  const hasUnread = useMemo(() => {
-    return conversations.some((entry) => entry.conversation.unreadCount > 0);
-  }, [conversations]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -394,9 +357,6 @@ const ChatShell = () => {
           </>
         )}
       </div>
-      {isMobile && (
-        <MobileBottomNav active={mobileNavRoute} onChange={handleMobileNavChange} hasUnread={hasUnread} />
-      )}
     </main>
   );
 };

@@ -174,37 +174,51 @@ export default function ConversationView({
     <>
       <section className={clsx(styles.container, isMobile && styles.mobileContainer)}>
       <div className={styles.header}>
-        <div className={styles.headerTitleStack}>
-          {isMobile && (
-            <button type="button" className={styles.backButton} onClick={onBack}>
-              Menu
+        {isMobile ? (
+          <div className={styles.mobileHeader}>
+            <button type="button" className={styles.mobileMenuButton} onClick={onBack} aria-label="Open menu">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2.5 5H17.5M2.5 10H17.5M2.5 15H17.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
             </button>
-          )}
-          <div className={styles.title}>{summary.title}</div>
-          <div className={styles.subtitle}>{summary.subtitle}</div>
-        </div>
-        <div className={styles.headerActions}>
-          {isMobile && onShowProfilePanel && (
-            <button type="button" className={styles.drawerButton} onClick={onShowProfilePanel}>
-              Account
-            </button>
-          )}
-          {otherParticipant && (
-            <button
-              type="button"
-              onClick={handleScheduleClick}
-              className={styles.scheduleButton}
-              title={`Schedule time with ${otherParticipant.name}`}
-            >
-              📅 Schedule
-            </button>
-          )}
-          {conversation && (
-            <div className={clsx(styles.metadata, styles.headerActionsMetadata)}>
-              Last activity • {new Date(conversation.lastActivity).toLocaleTimeString()}
+            <div className={styles.mobileHeaderTitle}>
+              <div className={styles.mobileTitle}>{summary.title}</div>
+              <div className={styles.mobileSubtitle}>{summary.subtitle}</div>
             </div>
-          )}
-        </div>
+            {onShowProfilePanel && (
+              <button type="button" className={styles.mobileAccountButton} onClick={onShowProfilePanel} aria-label="Open account">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M10 10C12.7614 10 15 7.76142 15 5C15 2.23858 12.7614 0 10 0C7.23858 0 5 2.23858 5 5C5 7.76142 7.23858 10 10 10Z" fill="currentColor"/>
+                  <path d="M10 12C5.58172 12 2 14.6863 2 18V20H18V18C18 14.6863 14.4183 12 10 12Z" fill="currentColor"/>
+                </svg>
+              </button>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className={styles.headerTitleStack}>
+              <div className={styles.title}>{summary.title}</div>
+              <div className={styles.subtitle}>{summary.subtitle}</div>
+            </div>
+            <div className={styles.headerActions}>
+              {otherParticipant && (
+                <button
+                  type="button"
+                  onClick={handleScheduleClick}
+                  className={styles.scheduleButton}
+                  title={`Schedule time with ${otherParticipant.name}`}
+                >
+                  📅 Schedule
+                </button>
+              )}
+              {conversation && (
+                <div className={clsx(styles.metadata, styles.headerActionsMetadata)}>
+                  Last activity • {new Date(conversation.lastActivity).toLocaleTimeString()}
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
       {connectError && <div className={styles.error}>{connectError}</div>}
       <div className={styles.viewArea}>
