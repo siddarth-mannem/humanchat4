@@ -177,7 +177,7 @@ export default function ConversationView({
         {isMobile ? (
           <div className={styles.mobileHeader}>
             <button type="button" className={styles.mobileMenuButton} onClick={onBack} aria-label="Open chats">
-              < Chats
+              &lt; Chats
             </button>
             <div className={styles.mobileHeaderTitle}>
               <div className={styles.mobileTitle}>{summary.title}</div>
