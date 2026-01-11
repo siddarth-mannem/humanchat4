@@ -12,7 +12,7 @@ export default function HeroExperience() {
     <div className="flex w-full flex-col gap-5 bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.25),transparent_55%)] p-5 sm:gap-6 sm:p-5 lg:grid lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.85fr)] lg:gap-10 lg:p-12 lg:min-h-[600px]">
       <div className="flex flex-col justify-center gap-4 sm:gap-5 lg:gap-6">
         <div>
-          <p className="text-xs uppercase tracking-[0.5em] text-white/60">HumanChat</p>
+          <p className="text-xs uppercase tracking-[0.5em] text-white/60">Humanchat.com</p>
           <h1 className="mt-3 font-display text-2xl sm:text-3xl leading-tight text-white lg:text-5xl">
             Talk to anyone, from anywhere, about anything.
           </h1>

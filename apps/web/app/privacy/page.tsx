@@ -10,8 +10,8 @@ export default function PrivacyPolicyPage() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-[#05021b] to-[#070417] text-white">
       <header className="flex items-center justify-between gap-4 border-b border-white/[0.03] px-6 py-5">
-        <Link href="/" className="text-2xl font-bold text-white leading-tight hover:opacity-80 transition-opacity">
-          Human<br />Chat
+        <Link href="/" className="text-sm font-semibold uppercase tracking-[0.35em] text-white/70 hover:text-white transition-colors">
+          Humanchat.com
         </Link>
       </header>
 

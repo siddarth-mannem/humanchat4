@@ -49,7 +49,7 @@ export default function AccountPage() {
             href="/"
             className="text-sm font-semibold uppercase tracking-[0.35em] text-white/70 transition hover:text-white"
           >
-            humanchat.com
+            Humanchat.com
           </Link>
           <p className="flex-1 text-center text-xs uppercase tracking-[0.45em] text-white/50">Account</p>
           <span className="text-xs text-white/60">
