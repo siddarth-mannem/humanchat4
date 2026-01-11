@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo, useRef, useState, forwardRef, useImperativeHandle, type ForwardedRef } from 'react';
+import { useMemo, useRef, useState, useEffect, forwardRef, useImperativeHandle, type ForwardedRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { GoogleAuthProvider, sendSignInLinkToEmail, signInWithPopup } from 'firebase/auth';
+import { GoogleAuthProvider, sendSignInLinkToEmail, signInWithRedirect, getRedirectResult } from 'firebase/auth';
 
 import { firebaseAuth } from '../lib/firebaseClient';
 import { useAuthIdentity } from '../hooks/useAuthIdentity';
@@ -41,32 +41,37 @@ const HeroLoginPanel = (_: HeroLoginPanelProps, ref: ForwardedRef<HeroLoginPanel
     []
   );
 
+  // Handle redirect result when user comes back from Google
+  useEffect(() => {
+    const handleRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result) {
+          // User successfully signed in via redirect
+          // The FirebaseSessionBridge will handle syncing the session
+          // and the auth state change will trigger the overlay to hide
+        }
+      } catch (error) {
+        console.error('Error handling redirect result:', error);
+        setError(error instanceof Error ? error.message : 'Unable to complete Google sign in.');
+        setGoogleStatus('idle');
+      }
+    };
+    void handleRedirectResult();
+  }, [auth]);
+
   const handleGoogleSignIn = async () => {
     if (googleStatus === 'signing-in') return;
     setGoogleStatus('signing-in');
     setError(null);
     try {
-      await signInWithPopup(auth, googleProvider);
-      // Wait for auth state to sync - poll for identity update
-      // This ensures the overlay disappears before redirecting
-      let attempts = 0;
-      const maxAttempts = 20; // 2 seconds max wait
-      while (attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        const updatedIdentity = await refresh();
-        if (updatedIdentity) {
-          // Give React time to update the UI before redirecting
-          await new Promise(resolve => setTimeout(resolve, 100));
-          router.push('/?focus=sam');
-          return;
-        }
-        attempts++;
-      }
-      // Fallback: redirect even if identity check timed out
-      router.push('/?focus=sam');
+      // This will redirect the entire page to Google for authentication
+      await signInWithRedirect(auth, googleProvider);
+      // Note: The code below won't execute because the page will redirect
+      // After Google authentication, the user will be redirected back
+      // and getRedirectResult will handle the result
     } catch (authIssue) {
       setError(authIssue instanceof Error ? authIssue.message : 'Unable to start Google sign in.');
-    } finally {
       setGoogleStatus('idle');
     }
   };
