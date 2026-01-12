@@ -3,8 +3,6 @@
 /**
  * Booking Page - Schedule a call with an expert
  * URL: /experts/[expertId]/schedule
- * 
- * Force dynamic rendering to prevent build-time errors in production
  */
 
 import { useState, useEffect } from 'react';
@@ -13,10 +11,6 @@ import Link from 'next/link';
 import { getExpertAvailability, createBooking, type TimeSlot } from '../../../../services/bookingApi';
 import { ProfileSummary } from '@/src/lib/db';
 import { useAuthIdentity } from '../../../../hooks/useAuthIdentity';
-
-// Force dynamic rendering - disable static optimization
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 export default function BookingPage() {
   const router = useRouter();
