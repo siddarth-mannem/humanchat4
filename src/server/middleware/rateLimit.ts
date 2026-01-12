@@ -5,8 +5,8 @@ import { env } from '../config/env.js';
 const skipRateLimit = env.nodeEnv !== 'production';
 
 export const unauthenticatedLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  limit: 100,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 500, // Increased from 100 to 500
   standardHeaders: true,
   legacyHeaders: false,
   skip: () => skipRateLimit,
