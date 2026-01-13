@@ -63,7 +63,7 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
     url,
     status: response.status,
     statusText: response.statusText,
-    headers: Array.from(response.headers.entries()),
+    headers: Object.fromEntries(response.headers as any),
   });
 
   if (!response.ok) {

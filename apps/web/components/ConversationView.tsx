@@ -196,13 +196,15 @@ export default function ConversationView({
               <div className={styles.subtitle}>{summary.subtitle}</div>
             </div>
             <div className={styles.headerActions}>
-              {console.log('[ConversationView] Header render:', { 
-                hasConversation: !!conversation, 
-                conversationType: conversation?.type, 
-                conversationId: conversation?.conversationId,
-                conversationStatus: conversation?.status,
-                shouldShowCallButtons: conversation && conversation.type !== 'sam'
-              })}
+              {(() => {
+                console.log('[ConversationView] Header render:', { 
+                  hasConversation: !!conversation, 
+                  conversationType: conversation?.type, 
+                  conversationId: conversation?.conversationId,
+                  shouldShowCallButtons: conversation && conversation.type !== 'sam'
+                });
+                return null;
+              })()}
               {conversation && conversation.type !== 'sam' && (
                 <ChatHeaderCallActions 
                   conversationId={conversation.conversationId}

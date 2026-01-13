@@ -182,14 +182,17 @@ export function useWebRTC(options: UseWebRTCOptions) {
       // Get local stream from published tracks
       const localMediaStream = new MediaStream();
       
-      if (room.localParticipant?.tracks) {
+      if (room.localParticipant) {
         try {
-          const localTracks = Array.from(room.localParticipant.tracks.values());
-          localTracks.forEach((publication) => {
-            if (publication?.track?.mediaStreamTrack) {
-              localMediaStream.addTrack(publication.track.mediaStreamTrack);
-            }
-          });
+          const trackPublications = (room.localParticipant as any).trackPublications || (room.localParticipant as any).tracks;
+          if (trackPublications) {
+            const localTracks = Array.from(trackPublications.values());
+            localTracks.forEach((publication: any) => {
+              if (publication?.track?.mediaStreamTrack) {
+                localMediaStream.addTrack(publication.track.mediaStreamTrack);
+              }
+            });
+          }
         } catch (err) {
           console.error('[useWebRTC] Error getting local tracks:', err);
         }

@@ -61,7 +61,7 @@ export async function startCall(
         liveKitToken: token,
         roomName: call.livekit_room_name!,
         participants,
-        initiatedAt: call.initiatedAt.toISOString(),
+        initiatedAt: typeof call.initiated_at === 'string' ? call.initiated_at : call.initiated_at.toISOString(),
       };
     }
   }
@@ -75,24 +75,24 @@ export async function startCall(
   );
 
   if (conversation.rows.length === 0) {
-    throw new ApiError(404, 'Conversation not found or access denied');
+    throw new ApiError(404, 'NOT_FOUND', 'Conversation not found or access denied');
   }
 
   const conv = conversation.rows[0];
 
   if (conv.type !== 'human') {
-    throw new ApiError(400, 'Can only call human conversations');
+    throw new ApiError(400, 'INVALID_REQUEST', 'Can only call human conversations');
   }
 
   // Get participant details
   const participants = conv.participants as string[];
   if (participants.length !== 2) {
-    throw new ApiError(400, 'Call requires exactly 2 participants');
+    throw new ApiError(400, 'INVALID_REQUEST', 'Call requires exactly 2 participants');
   }
 
   const calleeUserId = participants.find((p: string) => p !== callerUserId);
   if (!calleeUserId) {
-    throw new ApiError(400, 'Could not determine callee');
+    throw new ApiError(400, 'INVALID_REQUEST', 'Could not determine callee');
   }
 
   // Get user details
@@ -105,7 +105,7 @@ export async function startCall(
   const calleeUser = users.rows.find((u: any) => u.id === calleeUserId);
 
   if (!callerUser || !calleeUser) {
-    throw new ApiError(404, 'User not found');
+    throw new ApiError(404, 'NOT_FOUND', 'User not found');
   }
 
   // Check for duplicate active call
@@ -233,13 +233,13 @@ export async function acceptCall(
   );
 
   if (result.rows.length === 0) {
-    throw new ApiError(404, 'Call not found or access denied');
+    throw new ApiError(404, 'NOT_FOUND', 'Call not found or access denied');
   }
 
   const call = result.rows[0];
 
   if (call.status !== 'initiated') {
-    throw new ApiError(400, `Call cannot be accepted in ${call.status} state`);
+    throw new ApiError(400, 'INVALID_REQUEST', `Call cannot be accepted in ${call.status} state`);
   }
 
   // Update call status
@@ -257,7 +257,7 @@ export async function acceptCall(
   const calleeToken = await generateLiveKitToken({
     roomName: call.livekit_room_name!,
     userId: calleeUserId,
-    userName: call.callee_name,
+    userName: call.callee_name || 'User',
     metadata: JSON.stringify({ role: 'callee', callId }),
   });
 
@@ -267,12 +267,12 @@ export async function acceptCall(
     callId,
     acceptedBy: {
       userId: calleeUserId,
-      name: call.callee_name,
+      name: call.callee_name || 'User',
     },
     acceptedAt: new Date().toISOString(),
   };
 
-  await publishToRedis('notification', JSON.stringify({ ...acceptedMessage, userId: call.callerUserId }));
+  await publishToRedis('notification', JSON.stringify({ ...acceptedMessage, userId: call.caller_user_id }));
 
   return {
     callId,
@@ -300,13 +300,13 @@ export async function declineCall(
   );
 
   if (result.rows.length === 0) {
-    throw new ApiError(404, 'Call not found or access denied');
+    throw new ApiError(404, 'NOT_FOUND', 'Call not found or access denied');
   }
 
   const call = result.rows[0];
 
   if (call.status !== 'initiated') {
-    throw new ApiError(400, `Call cannot be declined in ${call.status} state`);
+    throw new ApiError(400, 'INVALID_REQUEST', `Call cannot be declined in ${call.status} state`);
   }
 
   // Update call status
@@ -326,13 +326,13 @@ export async function declineCall(
     callId,
     declinedBy: {
       userId: calleeUserId,
-      name: call.callee_name,
+      name: call.callee_name || 'User',
     },
     reason,
     declinedAt: new Date().toISOString(),
   };
 
-  await publishToRedis('notification', JSON.stringify({ ...declinedMessage, userId: call.callerUserId }));
+  await publishToRedis('notification', JSON.stringify({ ...declinedMessage, userId: call.caller_user_id }));
 }
 
 /**
@@ -358,7 +358,7 @@ export async function endCall(
   );
 
   if (result.rows.length === 0) {
-    throw new ApiError(404, 'Call not found or access denied');
+    throw new ApiError(404, 'NOT_FOUND', 'Call not found or access denied');
   }
 
   const call = result.rows[0];
@@ -368,7 +368,6 @@ export async function endCall(
     conversationId: call.conversation_id,
     status: call.status,
     connectedAt: call.connected_at,
-    durationCalc: call.duration_calc,
   });
 
   if (call.status === 'ended' || call.status === 'declined' || call.status === 'missed') {
@@ -376,7 +375,10 @@ export async function endCall(
     return;
   }
 
-  const durationSeconds = call.connected_at ? call.duration_calc : 0;
+  // Calculate duration: if connected, get seconds elapsed
+  const durationSeconds = call.connected_at 
+    ? Math.floor((new Date().getTime() - new Date(call.connected_at).getTime()) / 1000)
+    : 0;
 
   // Update call status
   await query(
@@ -424,7 +426,7 @@ export async function endCall(
         call.conversation_id,
         null, // system message (no sender)
         callSummary,
-        'system'
+        'system_notice'
       );
       console.log('[CallService] Successfully added call summary to conversation');
     } catch (err) {
@@ -440,7 +442,7 @@ export async function endCall(
     callId,
     endedBy: {
       userId,
-      name: call.ender_name,
+      name: call.ender_name || 'User',
     },
     duration: durationSeconds,
     endReason,
@@ -526,7 +528,7 @@ function scheduleCallTimeout(callId: string, calleeUserId: string): void {
           timeoutAt: new Date().toISOString(),
         };
 
-        await publishToRedis('notification', JSON.stringify({ ...timeoutMessage, userId: call.callerUserId }));
+        await publishToRedis('notification', JSON.stringify({ ...timeoutMessage, userId: call.caller_user_id }));
       }
     } catch (error) {
       console.error('Error handling call timeout:', error);
@@ -546,14 +548,14 @@ async function getCallParticipants(conversationId: string, callerUserId: string)
   );
 
   if (conv.rows.length === 0) {
-    throw new ApiError(404, 'Conversation not found');
+    throw new ApiError(404, 'NOT_FOUND', 'Conversation not found');
   }
 
   const participants = conv.rows[0].participants as string[];
   const calleeUserId = participants.find((p: string) => p !== callerUserId);
 
   if (!calleeUserId) {
-    throw new ApiError(400, 'Could not determine callee');
+    throw new ApiError(400, 'INVALID_REQUEST', 'Could not determine callee');
   }
 
   // Get user details

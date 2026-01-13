@@ -44,7 +44,7 @@ router.post(
     try {
       const parsed = startCallSchema.safeParse(req.body);
       if (!parsed.success) {
-        throw new ApiError(400, 'Invalid request', parsed.error.errors);
+        throw new ApiError(400, 'INVALID_REQUEST', 'Invalid request', parsed.error.flatten());
       }
 
       const userId = req.user!.id;
@@ -92,7 +92,7 @@ router.post(
       const { callId } = req.params;
       const parsed = declineCallSchema.safeParse(req.body);
       if (!parsed.success) {
-        throw new ApiError(400, 'Invalid request', parsed.error.errors);
+        throw new ApiError(400, 'INVALID_REQUEST', 'Invalid request', parsed.error.flatten());
       }
 
       const userId = req.user!.id;
@@ -134,7 +134,7 @@ router.post(
       res.json({
         callId,
         status: 'ended',
-        duration: call?.durationSeconds || 0,
+        duration: call?.duration_seconds || 0,
         endedAt: new Date().toISOString(),
       });
     } catch (error) {
@@ -188,7 +188,7 @@ router.get(
       const call = await callService.getCallById(callId, userId);
 
       if (!call) {
-        throw new ApiError(404, 'CALL_NOT_FOUND', 'Call not found');
+        throw new ApiError(404, 'NOT_FOUND', 'Call not found');
       }
 
       // Use the room name from the database (stored when call was created)
