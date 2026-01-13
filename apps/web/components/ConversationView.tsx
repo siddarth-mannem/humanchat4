@@ -14,6 +14,7 @@ import { connectNow as connectNowWithProfile } from '../services/conversationCli
 import { sessionStatusManager } from '../services/sessionStatusManager';
 import { SAM_DISPLAY_NAME } from '../hooks/useConversationData';
 import UserSettingsMenu from './UserSettingsMenu';
+import ChatHeaderCallActions from './ChatHeaderCallActions';
 
 interface ConversationViewProps {
   activeConversationId?: string;
@@ -195,6 +196,21 @@ export default function ConversationView({
               <div className={styles.subtitle}>{summary.subtitle}</div>
             </div>
             <div className={styles.headerActions}>
+              {(() => {
+                console.log('[ConversationView] Header render:', { 
+                  hasConversation: !!conversation, 
+                  conversationType: conversation?.type, 
+                  conversationId: conversation?.conversationId,
+                  shouldShowCallButtons: conversation && conversation.type !== 'sam'
+                });
+                return null;
+              })()}
+              {conversation && conversation.type !== 'sam' && (
+                <ChatHeaderCallActions 
+                  conversationId={conversation.conversationId}
+                  isConversationAccepted={true}
+                />
+              )}
               {otherParticipant && (
                 <button
                   type="button"

@@ -1,8 +1,11 @@
-import 'dotenv/config';
+import { config } from 'dotenv';
 import { readdir } from 'node:fs/promises';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { Pool } from 'pg';
+
+// Load environment from .env.backend.local
+config({ path: resolve(process.cwd(), '.env.backend.local') });
 
 const MIGRATIONS_DIR = resolve('src/server/db/migrations');
 const MIGRATIONS_TABLE = '__migrations';

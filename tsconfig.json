@@ -15,7 +15,8 @@
     "outDir": "dist",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["*"]
+      "@/*": ["apps/web/*"],
+      "@/src/*": ["src/*"]
     }
   },
   "include": ["src/**/*", "tests/**/*", "apps/web/**/*", "e2e/**/*"],

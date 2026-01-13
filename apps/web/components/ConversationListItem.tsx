@@ -1,7 +1,7 @@
 'use client';
 
 import clsx from 'clsx';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import styles from './ConversationSidebar.module.css';
 import type { ConversationListEntry } from '../hooks/useConversationData';
 
@@ -34,6 +34,8 @@ export default function ConversationListItem({ entry, isActive, onSelect, onArch
   const unreadCount = conversation.unreadCount ?? 0;
   const touchStart = useRef<number | null>(null);
   const touchDelta = useRef(0);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const handleClick = () => onSelect(conversation.conversationId);
 
@@ -69,8 +71,31 @@ export default function ConversationListItem({ entry, isActive, onSelect, onArch
     if (!onDelete || isSam) {
       return;
     }
+    setMenuOpen(false);
     onDelete(conversation.conversationId);
   };
+
+  const handleMenuToggle = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    event.preventDefault();
+    setMenuOpen(!menuOpen);
+  };
+
+  // Close menu when clicking outside
+  const handleOutsideClick = (event: MouseEvent) => {
+    if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+      setMenuOpen(false);
+    }
+  };
+
+  // Add/remove click listener for outside clicks
+  if (typeof window !== 'undefined') {
+    if (menuOpen) {
+      setTimeout(() => document.addEventListener('click', handleOutsideClick), 0);
+    } else {
+      document.removeEventListener('click', handleOutsideClick);
+    }
+  }
 
   const statusVariant = meta?.status;
   const statusClass = statusVariant ? statusClassMap[statusVariant] : undefined;
@@ -89,27 +114,41 @@ export default function ConversationListItem({ entry, isActive, onSelect, onArch
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
+      style={{ position: 'relative' }}
     >
       <div className={clsx(styles.avatar, isSam && styles.avatarSam)}>
         <img src={avatarSrc} alt={meta?.displayName ?? 'Conversation'} loading="lazy" decoding="async" />
       </div>
+      {onDelete && !isSam && (
+        <div className={styles.menuContainer} ref={menuRef}>
+          <button
+            type="button"
+            className={styles.menuButton}
+            onClick={handleMenuToggle}
+            aria-label="More options"
+          >
+            ⋮
+          </button>
+          {menuOpen && (
+            <div className={styles.dropdownMenu}>
+              <button
+                type="button"
+                className={styles.menuItem}
+                onClick={handleDeleteClick}
+                disabled={deletePending}
+              >
+                {deletePending ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
       {showMetadata && (
         <div className={styles.content}>
           <div className={styles.topRow}>
             <span className={styles.name}>{meta?.displayName ?? 'Unknown'}</span>
             <div className={styles.topRowMeta}>
-              <span className={styles.timestamp}>{meta?.relativeTimestamp}</span>
-              {onDelete && !isSam && (
-                <button
-                  type="button"
-                  className={clsx(styles.actionButton, styles.deleteButton)}
-                  onClick={handleDeleteClick}
-                  disabled={deletePending}
-                >
-                  {deletePending ? 'Deleting...' : 'Delete'}
-                </button>
-              )}
-            </div>
+              <span className={styles.timestamp}>{meta?.relativeTimestamp}</span>            </div>
           </div>
           <div className={styles.preview}>{meta?.lastMessage ?? 'No messages yet'}</div>
           <div className={styles.badges}>

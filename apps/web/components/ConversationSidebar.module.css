@@ -236,6 +236,74 @@
   color: #fecaca;
 }
 
+/* Menu container and button */
+.menuContainer {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-block;
+  z-index: 50;
+}
+
+.menuButton {
+  background: none;
+  border: none;
+  color: rgba(148, 163, 184, 0.8);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  min-height: 24px;
+}
+
+.menuButton:hover {
+  background: rgba(148, 163, 184, 0.15);
+  color: rgba(148, 163, 184, 0.95);
+}
+
+.dropdownMenu {
+  position: absolute;
+  top: calc(100% + 2px);
+  right: 0;
+  background: rgba(15, 23, 42, 0.98);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  min-width: 110px;
+  backdrop-filter: blur(12px);
+  overflow: hidden;
+}
+
+.menuItem {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  color: #fecaca;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  white-space: nowrap;
+}
+
+.menuItem:hover:not(:disabled) {
+  background: rgba(248, 113, 113, 0.12);
+}
+
+.menuItem:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .preview {
   font-size: 13px;
   color: rgba(148, 163, 184, 0.9);

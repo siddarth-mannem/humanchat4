@@ -12,7 +12,9 @@ export type ErrorCode =
   | 'REQUEST_REQUIRED'
   | 'REQUESTER_BUSY'
   | 'INVITE_EXPIRED'
-  | 'INVITE_CONSUMED';
+  | 'INVITE_CONSUMED'
+  | 'CALL_IN_PROGRESS'
+  | 'CALL_NOT_FOUND';
 
 export class ApiError extends Error {
   public status: number;

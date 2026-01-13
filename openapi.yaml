@@ -718,3 +718,207 @@ paths:
       responses:
         '200':
           description: AI response
+  /api/calls/start:
+    post:
+      security: [{ bearerAuth: [] }]
+      tags: [Calls]
+      summary: Start a new video or audio call
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [conversationId, callType]
+              properties:
+                conversationId:
+                  type: string
+                  format: uuid
+                callType:
+                  type: string
+                  enum: [video, audio]
+                idempotencyKey:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: Call initiated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  callId:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    enum: [initiated, accepted, connected, ended, declined, missed]
+                  liveKitToken:
+                    type: string
+                  roomName:
+                    type: string
+                  participants:
+                    type: object
+                  initiatedAt:
+                    type: string
+                    format: date-time
+        '400':
+          description: Invalid request or conversation not accepted
+        '404':
+          description: Conversation not found
+        '409':
+          description: Active call already exists
+  /api/calls/{callId}/accept:
+    post:
+      security: [{ bearerAuth: [] }]
+      tags: [Calls]
+      summary: Accept an incoming call
+      parameters:
+        - in: path
+          name: callId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Call accepted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  callId:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                  liveKitToken:
+                    type: string
+                  roomName:
+                    type: string
+                  acceptedAt:
+                    type: string
+                    format: date-time
+        '400':
+          description: Call cannot be accepted in current state
+        '404':
+          description: Call not found
+  /api/calls/{callId}/decline:
+    post:
+      security: [{ bearerAuth: [] }]
+      tags: [Calls]
+      summary: Decline an incoming call
+      parameters:
+        - in: path
+          name: callId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  enum: [busy, declined, other]
+      responses:
+        '204':
+          description: Call declined successfully
+        '400':
+          description: Call cannot be declined in current state
+        '404':
+          description: Call not found
+  /api/calls/{callId}/end:
+    post:
+      security: [{ bearerAuth: [] }]
+      tags: [Calls]
+      summary: End an active call
+      parameters:
+        - in: path
+          name: callId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                endReason:
+                  type: string
+                  enum: [normal, timeout, error]
+      responses:
+        '204':
+          description: Call ended successfully
+        '404':
+          description: Call not found
+  /api/calls/{callId}:
+    get:
+      security: [{ bearerAuth: [] }]
+      tags: [Calls]
+      summary: Get call session details
+      parameters:
+        - in: path
+          name: callId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Call session details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  conversationId:
+                    type: string
+                    format: uuid
+                  callerUserId:
+                    type: string
+                    format: uuid
+                  calleeUserId:
+                    type: string
+                    format: uuid
+                  callType:
+                    type: string
+                    enum: [video, audio]
+                  status:
+                    type: string
+                    enum: [initiated, accepted, connected, ended, declined, missed]
+                  liveKitRoomName:
+                    type: string
+                  initiatedAt:
+                    type: string
+                    format: date-time
+                  acceptedAt:
+                    type: string
+                    format: date-time
+                    nullable: true
+                  connectedAt:
+                    type: string
+                    format: date-time
+                    nullable: true
+                  endedAt:
+                    type: string
+                    format: date-time
+                    nullable: true
+                  durationSeconds:
+                    type: integer
+                    nullable: true
+                  endReason:
+                    type: string
+                    nullable: true
+        '404':
+          description: Call not found

@@ -7,6 +7,7 @@ import IdentityInitializer from '../components/IdentityInitializer';
 import InstantInviteListener from '../components/InstantInviteListener';
 import InstantInviteNavigator from '../components/InstantInviteNavigator';
 import UserSettingsMenu from '../components/UserSettingsMenu';
+import CallNotificationListener from '../components/CallNotificationListener';
 
 export const metadata = {
   title: 'HumanChat — Talk to Anyone, About Anything',
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <IdentityInitializer />
         <InstantInviteListener />
         <InstantInviteNavigator />
+        <CallNotificationListener />
         <div className="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-end px-4 py-4 chat-layout-settings">
           <div className="pointer-events-auto">
             <UserSettingsMenu />

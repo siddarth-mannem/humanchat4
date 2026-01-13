@@ -11,6 +11,7 @@ import samRoutes from './samRoutes.js';
 import requestedPeopleRoutes from './requestedPeopleRoutes.js';
 import adminRoutes from './adminRoutes.js';
 import bookingRoutes from './bookingRoutes.js';
+import callRoutes from './callRoutes.js';
 
 const router = Router();
 
@@ -25,6 +26,7 @@ router.use('/requests', requestRoutes);
 router.use('/sam', samRoutes);
 router.use('/requested-people', requestedPeopleRoutes);
 router.use('/admin', adminRoutes);
+router.use('/calls', callRoutes);
 router.use('/', bookingRoutes);
 
 export default router;

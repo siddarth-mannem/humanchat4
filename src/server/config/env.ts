@@ -54,5 +54,9 @@ export const env = {
   smtpFrom: process.env.SMTP_FROM ?? 'Sam <sam@humanchat.com>',
   geminiApiKey: process.env.GEMINI_API_KEY,
   geminiModel: process.env.GEMINI_MODEL ?? 'gemini-flash-latest',
-  postgresCryptoKey: process.env.POSTGRES_CRYPTO_KEY ?? 'change-me'
+  postgresCryptoKey: process.env.POSTGRES_CRYPTO_KEY ?? 'change-me',
+  // LiveKit configuration
+  liveKitApiKey: process.env.LIVEKIT_API_KEY ?? '',
+  liveKitApiSecret: process.env.LIVEKIT_API_SECRET ?? '',
+  liveKitServerUrl: process.env.LIVEKIT_URL ?? 'wss://humanchat-grwb5joy.livekit.cloud'
 };

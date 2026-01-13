@@ -17,8 +17,23 @@ declare global {
 }
 
 export const authenticate = (req: Request, res: Response, next: NextFunction): void => {
+  console.log('[auth] Authenticating request:', {
+    path: req.path,
+    method: req.method,
+    hasCookies: !!req.cookies,
+    cookieKeys: Object.keys(req.cookies || {}),
+    hasAuthHeader: !!req.headers.authorization,
+  });
+
   const token = extractAccessToken(req);
+  
+  console.log('[auth] Token extracted:', {
+    hasToken: !!token,
+    tokenPrefix: token ? token.substring(0, 20) + '...' : 'none',
+  });
+
   if (!token) {
+    console.error('[auth] No token found');
     fail(res, 'UNAUTHORIZED', 'Missing access token', 401);
     return;
   }
@@ -26,8 +41,13 @@ export const authenticate = (req: Request, res: Response, next: NextFunction): v
   try {
     const payload = verifyAccessToken(token);
     req.user = { id: payload.id, email: payload.email, role: payload.role };
+    console.log('[auth] Authentication successful:', {
+      userId: payload.id,
+      email: payload.email,
+    });
     next();
   } catch (error) {
+    console.error('[auth] Token verification failed:', error);
     fail(res, 'UNAUTHORIZED', 'Invalid or expired token', 401);
   }
 };
