@@ -104,6 +104,11 @@ export default function LiveRoom({
       // Ensure video element is not muted
       remoteVideoRef.current.muted = false;
       remoteVideoRef.current.volume = 1.0;
+      
+      // Force play to ensure audio starts
+      remoteVideoRef.current.play().catch((err) => {
+        console.error('[LiveRoom] Failed to play remote video:', err);
+      });
     }
   }, [remoteStream]);
 
@@ -185,6 +190,7 @@ export default function LiveRoom({
           ref={remoteVideoRef}
           autoPlay
           playsInline
+          muted={false}
           className="w-full h-full object-cover"
         />
 

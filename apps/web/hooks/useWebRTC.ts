@@ -117,13 +117,18 @@ export function useWebRTC(options: UseWebRTCOptions) {
             track.mediaStreamTrack.enabled = true;
             
             setRemoteStream((prevStream) => {
-              // Create new stream or use existing
-              const mediaStream = prevStream || new MediaStream();
+              // CRITICAL: Create a NEW MediaStream to trigger React re-render
+              const mediaStream = new MediaStream();
+              
+              // Add existing tracks from previous stream
+              if (prevStream) {
+                prevStream.getTracks().forEach(t => mediaStream.addTrack(t));
+              }
               
               // Add the new track
               mediaStream.addTrack(track.mediaStreamTrack);
               
-              console.log('[useWebRTC] Remote stream updated:', {
+              console.log('[useWebRTC] Remote stream updated (NEW OBJECT):', {
                 audioTracks: mediaStream.getAudioTracks().length,
                 videoTracks: mediaStream.getVideoTracks().length,
                 audioEnabled: mediaStream.getAudioTracks()[0]?.enabled,
@@ -132,6 +137,18 @@ export function useWebRTC(options: UseWebRTCOptions) {
               return mediaStream;
             });
           }
+        });
+        
+        // CRITICAL: Subscribe to track publications immediately
+        participant.on('trackPublished', (publication) => {
+          console.log('[useWebRTC] Track published by remote participant:', {
+            identity: participant.identity,
+            kind: publication.kind,
+            trackSid: publication.trackSid
+          });
+          
+          // Subscribe to the track
+          publication.setSubscribed(true);
         });
       });
 
@@ -142,6 +159,122 @@ export function useWebRTC(options: UseWebRTCOptions) {
 
       room.on(RoomEvent.LocalTrackPublished, (publication) => {
         console.log('Local track published:', publication.kind);
+      });
+      
+      // Handle existing participants after room state is synced
+      room.on(RoomEvent.Connected, () => {
+        console.log('[useWebRTC] Room connected event - checking for existing participants');
+        
+        // Add a small delay to ensure room state is fully synced
+        setTimeout(() => {
+          // Now check for existing participants (works after room is fully connected)
+          if (room.remoteParticipants && room.remoteParticipants.size > 0) {
+            const existingParticipants = Array.from(room.remoteParticipants.values());
+            console.log('[useWebRTC] Found existing participants:', {
+              count: existingParticipants.length,
+              identities: existingParticipants.map(p => p.identity)
+            });
+            
+            existingParticipants.forEach((participant) => {
+              console.log('[useWebRTC] Subscribing to existing participant:', {
+                identity: participant.identity,
+                trackPublicationsCount: participant.trackPublications.size
+              });
+              
+              // Subscribe to their already-published tracks
+              participant.trackPublications.forEach((publication) => {
+                console.log('[useWebRTC] Existing track publication:', {
+                  kind: publication.kind,
+                  trackSid: publication.trackSid,
+                  isSubscribed: publication.isSubscribed
+                });
+                
+                // Explicitly subscribe
+                if (!publication.isSubscribed) {
+                  publication.setSubscribed(true);
+                  console.log('[useWebRTC] Explicitly subscribed to track:', publication.trackSid);
+                }
+                
+                if (publication.track) {
+                  const track = publication.track;
+                  console.log('[useWebRTC] Found existing track:', {
+                    kind: track.kind,
+                    trackId: track.sid,
+                    enabled: track.mediaStreamTrack.enabled
+                  });
+                  
+                  if (track.kind === Track.Kind.Video || track.kind === Track.Kind.Audio) {
+                    track.mediaStreamTrack.enabled = true;
+                    
+                    setRemoteStream((prevStream) => {
+                      // CRITICAL: Create a NEW MediaStream to trigger React re-render
+                      const mediaStream = new MediaStream();
+                      
+                      // Add existing tracks
+                      if (prevStream) {
+                        prevStream.getTracks().forEach(t => mediaStream.addTrack(t));
+                      }
+                      
+                      // Add new track
+                      mediaStream.addTrack(track.mediaStreamTrack);
+                      
+                      console.log('[useWebRTC] Added existing track to remote stream (NEW OBJECT):', {
+                        audioTracks: mediaStream.getAudioTracks().length,
+                        videoTracks: mediaStream.getVideoTracks().length
+                      });
+                      
+                      return mediaStream;
+                    });
+                  }
+                }
+              });
+              
+              // Also listen for future track publications
+              participant.on('trackPublished', (publication) => {
+                console.log('[useWebRTC] New track published by existing participant:', {
+                  identity: participant.identity,
+                  kind: publication.kind,
+                  trackSid: publication.trackSid
+                });
+                publication.setSubscribed(true);
+              });
+              
+              // Also listen for future track subscriptions
+              participant.on('trackSubscribed', (track) => {
+                console.log('[useWebRTC] Track subscribed from existing participant:', {
+                  kind: track.kind,
+                  trackId: track.sid
+                });
+                
+                if (track.kind === Track.Kind.Video || track.kind === Track.Kind.Audio) {
+                  track.mediaStreamTrack.enabled = true;
+                  
+                  setRemoteStream((prevStream) => {
+                    // CRITICAL: Create a NEW MediaStream to trigger React re-render
+                    const mediaStream = new MediaStream();
+                    
+                    // Add existing tracks
+                    if (prevStream) {
+                      prevStream.getTracks().forEach(t => mediaStream.addTrack(t));
+                    }
+                    
+                    // Add new track
+                    mediaStream.addTrack(track.mediaStreamTrack);
+                    
+                    console.log('[useWebRTC] Remote stream updated (NEW OBJECT):', {
+                      audioTracks: mediaStream.getAudioTracks().length,
+                      videoTracks: mediaStream.getVideoTracks().length
+                    });
+                    
+                    return mediaStream;
+                  });
+                }
+              });
+            });
+          } else {
+            console.log('[useWebRTC] No existing participants found after delay');
+          }
+        }, 500); // Wait 500ms for room state to sync
       });
 
       // Connect with token

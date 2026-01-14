@@ -78,7 +78,16 @@ export default function VideoCallPanel({ sessionId, userId, isInitiator, partici
       element.volume = 1.0;
       console.log('[VideoCallPanel] Remote stream volume set to 1.0');
     }
-    void element.play().catch(() => undefined);
+    // Explicitly play the video element
+    element.play().catch((error) => {
+      console.error('[VideoCallPanel] Failed to play video element:', error);
+      // Retry play after a short delay
+      setTimeout(() => {
+        element.play().catch((retryError) => {
+          console.error('[VideoCallPanel] Retry play failed:', retryError);
+        });
+      }, 500);
+    });
   }, [sessionId, userId]);
 
   const startCall = useCallback(async () => {

@@ -202,37 +202,76 @@ export class VideoCall {
       console.log('[VideoCall] Adding tracks to peer connection:', {
         sessionId: this.sessionId,
         userId: this.userId,
+        isInitiator: this.isInitiator,
         audioTracks: audioTracks.length,
         videoTracks: videoTracks.length,
         audioEnabled: audioTracks[0]?.enabled
       });
+      
+      // Add tracks and verify transceivers are created
       this.localStream.getTracks().forEach((track) => {
-        this.pc!.addTrack(track, this.localStream!);
+        const sender = this.pc!.addTrack(track, this.localStream!);
+        console.log('[VideoCall] Track added:', {
+          sessionId: this.sessionId,
+          userId: this.userId,
+          trackKind: track.kind,
+          trackId: track.id,
+          senderTransceiver: sender.track?.kind
+        });
+      });
+      
+      // Log transceivers to verify bidirectional communication
+      const transceivers = this.pc.getTransceivers();
+      console.log('[VideoCall] Transceivers after adding tracks:', {
+        sessionId: this.sessionId,
+        userId: this.userId,
+        count: transceivers.length,
+        details: transceivers.map(t => ({
+          kind: t.sender.track?.kind,
+          direction: t.direction,
+          currentDirection: t.currentDirection
+        }))
       });
     }
 
     this.pc.ontrack = (event) => {
-      console.log('[VideoCall] Received remote track:', {
+      console.log('[VideoCall] ⭐ ONTRACK EVENT FIRED ⭐ Received remote track:', {
         sessionId: this.sessionId,
         userId: this.userId,
+        isInitiator: this.isInitiator,
         trackKind: event.track.kind,
         trackEnabled: event.track.enabled,
         trackMuted: event.track.muted,
         trackReadyState: event.track.readyState,
         streamsCount: event.streams.length
       });
-      this.remoteStream = event.streams[0];
-      if (this.remoteStream) {
-        console.log('[VideoCall] Remote stream received:', {
+      
+      // Store/update the remote stream reference
+      if (event.streams[0]) {
+        this.remoteStream = event.streams[0];
+        
+        // Log current state of the remote stream
+        console.log('[VideoCall] Remote stream updated:', {
           sessionId: this.sessionId,
           userId: this.userId,
+          isInitiator: this.isInitiator,
           audioTracks: this.remoteStream.getAudioTracks().length,
           videoTracks: this.remoteStream.getVideoTracks().length,
           audioEnabled: this.remoteStream.getAudioTracks()[0]?.enabled,
-          audioMuted: this.remoteStream.getAudioTracks()[0]?.muted
+          audioMuted: this.remoteStream.getAudioTracks()[0]?.muted,
+          videoEnabled: this.remoteStream.getVideoTracks()[0]?.enabled
+        });
+        
+        // Emit the remote stream every time we receive a track
+        // This ensures the UI gets updated with the complete stream
+        this.emit('remoteStream', this.remoteStream);
+      } else {
+        console.error('[VideoCall] ⚠️ ONTRACK event but no streams in event!', {
+          sessionId: this.sessionId,
+          userId: this.userId,
+          trackKind: event.track.kind
         });
       }
-      this.emit('remoteStream', this.remoteStream);
     };
 
     this.pc.onicecandidate = (event) => {
@@ -283,7 +322,16 @@ export class VideoCall {
       this.setState('connecting');
       this.startConnectionTimeout();
       if (this.isInitiator) {
-        this.createAndSendOffer().catch((error) => this.emit('error', error.message));
+        // Add a small delay to ensure peer connection is fully ready
+        setTimeout(() => {
+          console.log('[VideoCall] WebSocket opened, creating offer after delay:', {
+            sessionId: this.sessionId,
+            userId: this.userId,
+            pcState: this.pc?.connectionState,
+            senders: this.pc?.getSenders().length
+          });
+          this.createAndSendOffer().catch((error) => this.emit('error', error.message));
+        }, 100);
       }
     };
 
@@ -308,18 +356,144 @@ export class VideoCall {
   }
 
   private async handleSignal(message: Record<string, unknown>): Promise<void> {
-    if (!this.pc) return;
+    if (!this.pc) {
+      console.warn('[VideoCall] Received signal but no peer connection exists yet', {
+        sessionId: this.sessionId,
+        userId: this.userId,
+        messageType: message.type
+      });
+      return;
+    }
+    
     switch (message.type) {
       case 'offer':
         if (!message.offer) return;
-        await this.pc.setRemoteDescription(new RTCSessionDescription(message.offer as RTCSessionDescriptionInit));
+        
+        // Ensure we have local tracks before answering
+        if (!this.localStream || this.localStream.getTracks().length === 0) {
+          console.error('[VideoCall] Received offer but no local stream available!', {
+            sessionId: this.sessionId,
+            userId: this.userId,
+            localStream: !!this.localStream
+          });
+          return;
+        }
+        
+        const receivedOffer = message.offer as RTCSessionDescriptionInit;
+        const offerHasAudio = receivedOffer.sdp?.includes('m=audio');
+        const offerHasVideo = receivedOffer.sdp?.includes('m=video');
+        
+        console.log('[VideoCall] Received offer, creating answer:', {
+          sessionId: this.sessionId,
+          userId: this.userId,
+          isInitiator: this.isInitiator,
+          offerHasAudio,
+          offerHasVideo,
+          offerSdpPreview: receivedOffer.sdp?.substring(0, 300),
+          localStreamTracks: {
+            audio: this.localStream.getAudioTracks().length,
+            video: this.localStream.getVideoTracks().length
+          },
+          senders: this.pc.getSenders().length
+        });
+        
+        await this.pc.setRemoteDescription(new RTCSessionDescription(receivedOffer));
+        
+        // Manually check for remote tracks after setting remote description
+        const receivers = this.pc.getReceivers();
+        console.log('[VideoCall] Remote description set, receivers:', {
+          sessionId: this.sessionId,
+          userId: this.userId,
+          receiversCount: receivers.length,
+          receiversDetails: receivers.map(r => ({
+            trackKind: r.track?.kind,
+            trackId: r.track?.id,
+            trackReadyState: r.track?.readyState
+          }))
+        });
+        
+        // Check transceivers after setting remote description
+        const transceivers = this.pc.getTransceivers();
+        console.log('[VideoCall] Transceivers after setRemoteDescription:', {
+          sessionId: this.sessionId,
+          userId: this.userId,
+          count: transceivers.length,
+          details: transceivers.map(t => ({
+            kind: t.receiver?.track?.kind,
+            direction: t.direction,
+            currentDirection: t.currentDirection,
+            receiverTrackId: t.receiver?.track?.id
+          }))
+        });
+        
+        // Manually extract remote stream from receivers if ontrack hasn't fired
+        if (receivers.length > 0 && !this.remoteStream) {
+          console.warn('[VideoCall] ⚠️ ontrack did not fire! Manually constructing remote stream from receivers');
+          const remoteStream = new MediaStream();
+          receivers.forEach(receiver => {
+            if (receiver.track) {
+              console.log('[VideoCall] Manually adding track to remote stream:', {
+                trackKind: receiver.track.kind,
+                trackId: receiver.track.id
+              });
+              remoteStream.addTrack(receiver.track);
+            }
+          });
+          this.remoteStream = remoteStream;
+          this.emit('remoteStream', this.remoteStream);
+          console.log('[VideoCall] Remote stream manually created:', {
+            sessionId: this.sessionId,
+            userId: this.userId,
+            audioTracks: remoteStream.getAudioTracks().length,
+            videoTracks: remoteStream.getVideoTracks().length
+          });
+        }
+        
         const answer = await this.pc.createAnswer();
         await this.pc.setLocalDescription(answer);
+        
+        const answerHasAudio = answer.sdp?.includes('m=audio');
+        const answerHasVideo = answer.sdp?.includes('m=video');
+        
+        console.log('[VideoCall] Sending answer:', {
+          sessionId: this.sessionId,
+          userId: this.userId,
+          senders: this.pc.getSenders().length,
+          answerHasAudio,
+          answerHasVideo,
+          answerSdpPreview: answer.sdp?.substring(0, 300)
+        });
         this.sendSignal({ type: 'answer', answer });
         break;
       case 'answer':
         if (!message.answer) return;
-        await this.pc.setRemoteDescription(new RTCSessionDescription(message.answer as RTCSessionDescriptionInit));
+        
+        const receivedAnswer = message.answer as RTCSessionDescriptionInit;
+        const receivedAnswerHasAudio = receivedAnswer.sdp?.includes('m=audio');
+        const receivedAnswerHasVideo = receivedAnswer.sdp?.includes('m=video');
+        
+        console.log('[VideoCall] Received answer:', {
+          sessionId: this.sessionId,
+          userId: this.userId,
+          isInitiator: this.isInitiator,
+          answerHasAudio: receivedAnswerHasAudio,
+          answerHasVideo: receivedAnswerHasVideo,
+          answerSdpPreview: receivedAnswer.sdp?.substring(0, 300),
+          receiversBeforeApply: this.pc.getReceivers().length
+        });
+        
+        await this.pc.setRemoteDescription(new RTCSessionDescription(receivedAnswer));
+        
+        console.log('[VideoCall] Answer applied, receivers:', {
+          sessionId: this.sessionId,
+          userId: this.userId,
+          receiversCount: this.pc.getReceivers().length,
+          receiversDetails: this.pc.getReceivers().map(r => ({
+            trackKind: r.track?.kind,
+            trackId: r.track?.id,
+            trackEnabled: r.track?.enabled
+          }))
+        });
         break;
       case 'ice-candidate':
         if (!message.candidate) return;
@@ -337,8 +511,56 @@ export class VideoCall {
     if (!this.pc) {
       throw new Error('Peer connection not ready');
     }
+    
+    const senders = this.pc.getSenders();
+    console.log('[VideoCall] 📤 Creating offer:', {
+      sessionId: this.sessionId,
+      userId: this.userId,
+      isInitiator: this.isInitiator,
+      iceRestart,
+      localStreamTracks: this.localStream ? {
+        audio: this.localStream.getAudioTracks().length,
+        video: this.localStream.getVideoTracks().length,
+        audioTrackId: this.localStream.getAudioTracks()[0]?.id,
+        videoTrackId: this.localStream.getVideoTracks()[0]?.id,
+        audioEnabled: this.localStream.getAudioTracks()[0]?.enabled,
+        videoEnabled: this.localStream.getVideoTracks()[0]?.enabled
+      } : 'no local stream',
+      sendersCount: senders.length,
+      sendersDetails: senders.map(s => ({
+        trackKind: s.track?.kind,
+        trackId: s.track?.id,
+        trackEnabled: s.track?.enabled
+      }))
+    });
+    
+    if (senders.length === 0) {
+      console.error('[VideoCall] ❌ CRITICAL: No senders when creating offer! Tracks were not added properly!');
+    }
+    
     const offer = await this.pc.createOffer({ iceRestart });
     await this.pc.setLocalDescription(offer);
+    
+    // Check if SDP contains audio and video
+    const hasAudio = offer.sdp?.includes('m=audio');
+    const hasVideo = offer.sdp?.includes('m=video');
+    const sdpLines = offer.sdp?.split('\n') || [];
+    const mediaLines = sdpLines.filter(line => line.startsWith('m='));
+    
+    console.log('[VideoCall] 📤 Sending offer:', {
+      sessionId: this.sessionId,
+      userId: this.userId,
+      sendersCount: senders.length,
+      hasAudioInSDP: hasAudio,
+      hasVideoInSDP: hasVideo,
+      mediaLines: mediaLines,
+      sdpPreview: offer.sdp?.substring(0, 400)
+    });
+    
+    if (!hasAudio || !hasVideo) {
+      console.error('[VideoCall] ❌ CRITICAL: Offer SDP missing media!', { hasAudio, hasVideo });
+    }
+    
     this.sendSignal({ type: 'offer', offer });
   }
 
