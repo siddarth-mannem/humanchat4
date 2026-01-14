@@ -85,7 +85,16 @@ export default function VideoArea({ session, currentUserId, onCallEnd, mediaMode
       element.volume = 1.0;
       console.log('[VideoArea] Remote stream volume set to 1.0');
     }
-    void element.play().catch(() => undefined);
+    // Explicitly play the video element
+    element.play().catch((error) => {
+      console.error('[VideoArea] Failed to play video element:', error);
+      // Retry play after a short delay
+      setTimeout(() => {
+        element.play().catch((retryError) => {
+          console.error('[VideoArea] Retry play failed:', retryError);
+        });
+      }, 500);
+    });
   }, [session.sessionId, currentUserId]);
 
   useEffect(() => {
