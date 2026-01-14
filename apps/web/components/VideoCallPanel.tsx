@@ -62,10 +62,24 @@ export default function VideoCallPanel({ sessionId, userId, isInitiator, partici
       element.srcObject = null;
       return;
     }
+    console.log('[VideoCallPanel] Attaching stream to element:', {
+      sessionId,
+      userId,
+      muted: mute,
+      audioTracks: stream.getAudioTracks().length,
+      videoTracks: stream.getVideoTracks().length,
+      audioEnabled: stream.getAudioTracks()[0]?.enabled,
+      audioMuted: stream.getAudioTracks()[0]?.muted
+    });
     element.srcObject = stream;
     element.muted = mute;
+    // Ensure remote streams have volume enabled
+    if (!mute) {
+      element.volume = 1.0;
+      console.log('[VideoCallPanel] Remote stream volume set to 1.0');
+    }
     void element.play().catch(() => undefined);
-  }, []);
+  }, [sessionId, userId]);
 
   const startCall = useCallback(async () => {
     try {

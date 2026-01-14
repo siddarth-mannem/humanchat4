@@ -65,12 +65,28 @@ export default function VideoArea({ session, currentUserId, onCallEnd, mediaMode
 
   const attachStream = useCallback((element: HTMLVideoElement | null, stream: MediaStream | null, mute = false) => {
     if (!element) return;
+    if (!stream) {
+      element.srcObject = null;
+      return;
+    }
+    console.log('[VideoArea] Attaching stream to element:', {
+      sessionId: session.sessionId,
+      userId: currentUserId,
+      muted: mute,
+      audioTracks: stream.getAudioTracks().length,
+      videoTracks: stream.getVideoTracks().length,
+      audioEnabled: stream.getAudioTracks()[0]?.enabled,
+      audioMuted: stream.getAudioTracks()[0]?.muted
+    });
     element.srcObject = stream;
     element.muted = mute;
-    if (stream) {
-      void element.play().catch(() => undefined);
+    // Ensure remote streams have volume enabled
+    if (!mute) {
+      element.volume = 1.0;
+      console.log('[VideoArea] Remote stream volume set to 1.0');
     }
-  }, []);
+    void element.play().catch(() => undefined);
+  }, [session.sessionId, currentUserId]);
 
   useEffect(() => {
     const instance = ensureCall();

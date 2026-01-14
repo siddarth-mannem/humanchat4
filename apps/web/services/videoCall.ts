@@ -122,6 +122,14 @@ export class VideoCall {
         video: this.mediaMode === 'video',
         audio: true
       });
+      console.log('[VideoCall] Local media captured:', {
+        sessionId: this.sessionId,
+        userId: this.userId,
+        audioTracks: this.localStream.getAudioTracks().length,
+        videoTracks: this.localStream.getVideoTracks().length,
+        audioEnabled: this.localStream.getAudioTracks()[0]?.enabled,
+        audioSettings: this.localStream.getAudioTracks()[0]?.getSettings()
+      });
       this.emit('localStream', this.localStream);
       this.startAudioMeter(this.localStream);
     } catch (error) {
@@ -189,13 +197,41 @@ export class VideoCall {
     });
 
     if (this.localStream) {
+      const audioTracks = this.localStream.getAudioTracks();
+      const videoTracks = this.localStream.getVideoTracks();
+      console.log('[VideoCall] Adding tracks to peer connection:', {
+        sessionId: this.sessionId,
+        userId: this.userId,
+        audioTracks: audioTracks.length,
+        videoTracks: videoTracks.length,
+        audioEnabled: audioTracks[0]?.enabled
+      });
       this.localStream.getTracks().forEach((track) => {
         this.pc!.addTrack(track, this.localStream!);
       });
     }
 
     this.pc.ontrack = (event) => {
+      console.log('[VideoCall] Received remote track:', {
+        sessionId: this.sessionId,
+        userId: this.userId,
+        trackKind: event.track.kind,
+        trackEnabled: event.track.enabled,
+        trackMuted: event.track.muted,
+        trackReadyState: event.track.readyState,
+        streamsCount: event.streams.length
+      });
       this.remoteStream = event.streams[0];
+      if (this.remoteStream) {
+        console.log('[VideoCall] Remote stream received:', {
+          sessionId: this.sessionId,
+          userId: this.userId,
+          audioTracks: this.remoteStream.getAudioTracks().length,
+          videoTracks: this.remoteStream.getVideoTracks().length,
+          audioEnabled: this.remoteStream.getAudioTracks()[0]?.enabled,
+          audioMuted: this.remoteStream.getAudioTracks()[0]?.muted
+        });
+      }
       this.emit('remoteStream', this.remoteStream);
     };
 
