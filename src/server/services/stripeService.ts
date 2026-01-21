@@ -428,20 +428,7 @@ export const createStripeConnectLink = async (userId: string, returnPath?: strin
 
 	let accountId = user.stripe_account_id ?? null;
 	if (!accountId) {
-		// TEMPORARY DEV MODE: Skip Connect account creation for testing
-		// In production, you MUST enable Stripe Connect at https://dashboard.stripe.com/connect
-		if (env.nodeEnv === 'development' || env.nodeEnv === 'test') {
-			// Use a mock account ID for dev/testing
-			accountId = 'acct_dev_mock_' + userId.substring(0, 8);
-			await query('UPDATE users SET stripe_account_id = $2 WHERE id = $1', [userId, accountId]);
-			logger.warn('DEV MODE: Mocked Stripe Connect account', { userId, accountId });
-			
-			// Return success URL directly (no actual Stripe onboarding)
-			const returnUrl = `${env.appUrl}${returnPath ?? '/account'}?status=success`;
-			return { url: returnUrl };
-		}
-		
-		// Production: Create actual Express Connect account
+		// Create actual Express Connect account (even in development with test keys)
 		const account = await stripe.accounts.create({
 			type: 'express',
 			email: user.email
@@ -450,8 +437,8 @@ export const createStripeConnectLink = async (userId: string, returnPath?: strin
 		await query('UPDATE users SET stripe_account_id = $2 WHERE id = $1', [userId, accountId]);
 	}
 
-	const refreshUrl = `${env.appUrl}${returnPath ?? '/settings/payments'}?status=refresh`;
-	const returnUrl = `${env.appUrl}${returnPath ?? '/settings/payments'}?status=success`;
+	const refreshUrl = `${env.appUrl}${returnPath ?? '/account'}?status=refresh`;
+	const returnUrl = `${env.appUrl}${returnPath ?? '/account'}?status=success`;
 	const link = await stripe.accountLinks.create({
 		account: accountId,
 		refresh_url: refreshUrl,

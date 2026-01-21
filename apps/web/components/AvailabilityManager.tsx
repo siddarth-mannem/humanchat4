@@ -47,7 +47,21 @@ export function AvailabilityManager({ embedded = false }: AvailabilityManagerPro
         getAvailabilitySummary(),
         getAvailabilityOverrides(today, futureDate)
       ]);
-      setRules(rulesData);
+      
+      // Set default weekday availability (Monday-Friday) if no rules exist
+      if (rulesData.length === 0) {
+        const defaultWeekdayRules: AvailabilityRule[] = [1, 2, 3, 4, 5].map((dayOfWeek) => ({
+          dayOfWeek,
+          startTime: '09:00',
+          endTime: '17:00',
+          slotDurationMinutes: 30,
+          timezone
+        }));
+        setRules(defaultWeekdayRules);
+      } else {
+        setRules(rulesData);
+      }
+      
       setSummary(summaryData);
       const blocked = overridesData.filter((override) => override.overrideType === 'blocked' && !override.startTime && !override.endTime);
       setBlockedOverrides(blocked);
